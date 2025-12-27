@@ -1,4 +1,4 @@
-# Chess Game with AI opponent:
+# Play Chess against AI opponent:
 
 This Program uses Java for game logic and uses Python for AI capability
 
