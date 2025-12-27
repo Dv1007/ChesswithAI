@@ -1,6 +1,6 @@
 # Chess Game with AI opponent:
 
-This Program uses Java for game logic and uses Python for playing an AI opponent
+This Program uses Java for game logic and uses Python for AI capability
 
 Play against an AI opponent and get feedback on your moves!
 
