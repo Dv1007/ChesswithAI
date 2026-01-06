@@ -1,3 +1,4 @@
+
 public class ChessBoard {
     
     private String[][] board;
@@ -218,5 +219,120 @@ public class ChessBoard {
         }
         return legalMove;
     }
-}
 
+    //knight logic
+    public boolean knightMove(int startRow, int startCol, int endRow, int endCol) {
+        String piece = board[startRow][startCol];
+        if (!piece.equals("N") && !piece.equals("n")) {
+            return false; //not a knight
+        } 
+        int rowDiff = Math.abs(endRow -startRow);
+        int colDiff = Math.abs(endCol - startCol);
+        
+        if ((!(rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2))) {
+            return false;
+        }
+        String loc = board[endRow][endCol];
+        boolean whiteCapture = piece.equals("N") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
+        boolean blackCapture = piece.equals("n") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
+        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        if (legalMove) {
+            board[endRow][endCol] = piece;
+            board[startRow][startCol] = "*";
+        }
+        return legalMove;
+    }
+    //queen logic
+    public boolean queenMove(int startRow, int startCol, int endRow, int endCol) {
+        String piece = board[startRow][startCol];
+        if (!piece.equals("Q") && !piece.equals("q")) {
+            return false; //not a queen
+        } 
+        //combine bishop and rook logic
+        boolean sameRow = startRow == endRow;
+        boolean sameColumn = startCol == endCol;
+
+        if (!sameRow && !sameColumn && Math.abs(endRow - startRow) != Math.abs(endCol - startCol)) {
+            return false;
+        }
+
+        int moveRow = 0;
+        int moveCol = 0;
+
+        if (sameRow) {
+            if (startCol < endCol) {
+                moveCol = 1;
+            }
+            else {
+                moveCol = -1;
+            }
+        }
+        else if (sameColumn) {
+            if (startRow < endRow) {
+                moveRow = 1;
+            }
+            else {
+                moveRow = -1;
+            }
+        }
+        else {
+            if (startRow < endRow) {
+                moveRow = 1;
+            }
+            else {
+                moveRow = -1; 
+            }
+            if (startCol < endCol) {
+                moveCol = 1;
+            }
+            else {
+                moveCol = -1;
+            }
+        }
+
+        int row = startRow + moveRow;
+        int col = startCol + moveCol;
+
+        while (row != endRow && col != endCol) {
+            if (!board[row][col].equals("*")) {
+                return false;
+            }
+            row  = row + moveRow;
+            col = col + moveCol;
+        }
+
+        String loc = board[endRow][endCol];
+        boolean whiteCapture = piece.equals("Q") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
+        boolean blackCapture = piece.equals("q") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
+        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        
+        if (legalMove) {
+            board[endRow][endCol] = piece;
+            board[startRow][startCol] = "*";
+        }
+        return legalMove;
+    }
+    //king logic
+    public boolean kingMove(int startRow, int startCol, int endRow, int endCol) {
+        String piece = board[startRow][startCol];
+        if (!piece.equals("K") && !piece.equals("k")) {
+            return false; //not a king
+        }
+        int rowDiff = Math.abs(endRow - startRow);
+        int colDiff = Math.abs(endCol - startCol);
+        if (rowDiff > 1 || colDiff > 1) {
+            return false;
+        }
+
+        String loc = board[endRow][endCol];
+        boolean whiteCapture = piece.equals("K") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
+        boolean blackCapture = piece.equals("k") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
+        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        
+        if (legalMove) {
+            board[endRow][endCol] = piece;
+            board[startRow][startCol] = "*";
+        }
+        return legalMove;
+    }
+}
