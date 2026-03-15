@@ -7,14 +7,19 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
- 
-public class ChessFX extends Application {
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
+
+ public class ChessFX extends Application {
     
     ChessBoard board = new ChessBoard();
     Button[][] buttons = new Button[8][8];
-    
     int startRow = -1;
     int startCol = -1;
+    boolean whiteTurn = true;
 
     public ImageView getPieceImage(String piece) {
         Image img;
@@ -60,9 +65,6 @@ public class ChessFX extends Application {
         return new ImageView(img);
     }
     
-    
-    
-    
     public static void main(String[] args) {
         launch(args);
     }
@@ -70,65 +72,104 @@ public class ChessFX extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Chess");
-        
         GridPane grid = new GridPane();
-
+        
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 String piece = board.getPiece(row, col);
                 Button btn = new Button();
-                btn.setGraphic(getPieceImage(piece));
                 btn.setPrefSize(60, 60);
                 buttons[row][col] = btn;
-                
                 int r = row;
                 int c = col;
-                
-                btn.setOnAction(new EventHandler<ActionEvent>() {
+
+                ImageView pieceImage = getPieceImage(piece);
+                btn.setGraphic(pieceImage);
+
+                btn.setOnDragDetected(new EventHandler <MouseEvent>() {
                     @Override
-                    public void handle(ActionEvent event) {
-                        if (startRow == -1) {
-                            startRow = r;
-                            startCol = c;
-                        }
-                        else {
-                            String piece = board.getPiece(startRow, startCol);
-                            boolean moved = false;
-
-                            if (piece.equals("P") || piece.equals("p")) {
-                            moved = board.pawnMove(startRow,startCol, r, c);
-                            }
-                            else if (piece.equals("R") || piece.equals("r")) {
-                            moved = board.rookMove(startRow,startCol, r, c);
-                            }
-                            else if (piece.equals("B") || piece.equals("b")) {
-                            moved = board.bishopMove(startRow,startCol, r, c);
-                            }
-                            else if (piece.equals("N") || piece.equals("n")) {
-                            moved = board.knightMove(startRow,startCol, r, c);
-                            }
-                            else if (piece.equals("Q") || piece.equals("q")) {
-                            moved = board.queenMove(startRow,startCol, r, c);
-                            }
-                            else if (piece.equals("K") || piece.equals("k")) {
-                            moved = board.kingMove(startRow,startCol, r, c);
-                            }
-
-                            if (moved) {
-                                for (int i = 0; i < 8; i++) {
-                                    for (int j = 0; j < 8; j++) {
-                                        buttons[i][j].setGraphic(getPieceImage(board.getPiece(i, j)));
-                                    }
-                                }
-                            }
-                            startRow = -1;
-                            startCol = -1;
-                        }
+                    public void handle(MouseEvent event) {
+                    String p = board.getPiece(r, c);
+                    if (p.equals("*")) {
+                        return;
                     }
-                });
-                
-                grid.add(btn, col, 7 - row);
+
+                    boolean isWhitePiece = (p.equals("P") || p.equals("R") || p.equals("N") || p.equals("B") || p.equals("Q") || p.equals("K"));
+                    
+                    if (whiteTurn && !isWhitePiece) {
+                        return;
+                    } 
+                    if (!whiteTurn && isWhitePiece) {
+                        return;
+                    }
+
+                    startRow = r;
+                    startCol = c;
+                    Dragboard db = btn.startDragAndDrop(TransferMode.MOVE);
+                    db.setDragView(pieceImage.getImage());
+                    ClipboardContent content = new ClipboardContent();
+                    content.putString(board.getPiece(r, c));
+                    db.setContent(content);
+                    btn.setGraphic(null);
+                    event.consume();
+                }
+            });
+
+            btn.setOnDragOver(new EventHandler <DragEvent>() {
+                @Override
+                public void handle(DragEvent event) {
+                if (event.getGestureSource() != btn && event.getDragboard().hasString())  {   
+                    event.acceptTransferModes(TransferMode.MOVE);
+                }
+                event.consume();
             }
+        });
+        
+        btn.setOnDragDropped( new EventHandler <DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                Dragboard db = event.getDragboard();
+                boolean test = false;
+                
+                if (db.hasString()) {
+                    String movingPiece = db.getString();
+                    boolean moved = false;
+                    
+                    if (movingPiece.equals("P") || movingPiece.equals("p"))  {
+                        moved = board.pawnMove(startRow, startCol, r, c);
+                    }
+                    else if (movingPiece.equals("R") || movingPiece.equals("r"))  {
+                        moved = board.rookMove(startRow, startCol, r, c);
+                    }
+                    else if (movingPiece.equals("B") || movingPiece.equals("b"))  {
+                        moved = board.bishopMove(startRow, startCol, r, c);
+                    }
+                    else if (movingPiece.equals("N") || movingPiece.equals("n"))  {
+                        moved = board.knightMove(startRow, startCol, r, c);
+                    }
+                    else if (movingPiece.equals("Q") || movingPiece.equals("q"))  {
+                        moved = board.queenMove(startRow, startCol, r, c);
+                    }
+                    else if (movingPiece.equals("K") || movingPiece.equals("k"))  {
+                        moved = board.kingMove(startRow, startCol, r, c);
+                    }
+
+                    if (moved) {
+                        whiteTurn =!whiteTurn;
+                        refreshBoard();
+                        test = true;
+                    }
+                    if (!test) {
+                        refreshBoard();
+                    }
+                }
+                event.setDropCompleted(test);
+                event.consume();
+            }
+        });
+
+        grid.add(btn, col, 7 - row);
+        }
         }
         
         Scene scene = new Scene(grid);
@@ -136,4 +177,17 @@ public class ChessFX extends Application {
         primaryStage.show();
 
         }
+
+        public void refreshBoard() {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                String piece = board.getPiece(row, col);
+                if (piece.equals("*")) {
+                    buttons[row][col].setGraphic(null);
+                } else {
+                    buttons[row][col].setGraphic(getPieceImage(piece));
+                }
+            }
+        }
     }
+ }
