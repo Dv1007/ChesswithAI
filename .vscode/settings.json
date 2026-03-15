@@ -1,5 +1,9 @@
 {
+    "workbench.colorTheme": "Default Light Modern",
+    "jdk.telemetry.enabled": false,
+    "editor.minimap.enabled": false,
     "java.project.referencedLibraries": [
-        "/usr/share/openjfx/lib/*.jar"
-    ]
+        "/home/dv1007/openjfx-17_linux-x64_bin-sdk/javafx-sdk-17/lib/*.jar"
+    ],
+    "java.debug.settings.vmArgs": "--module-path /home/dv1007/openjfx-17_linux-x64_bin-sdk/javafx-sdk-17/lib --add-modules javafx.controls,javafx.fxml,javafx.graphics -Dprism.order=sw"
 }
