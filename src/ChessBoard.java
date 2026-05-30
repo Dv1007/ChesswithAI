@@ -2,10 +2,23 @@
 public class ChessBoard {
     
     private String[][] board;
+    private boolean wKingMoved;
+    private boolean bKingMoved;
+    private boolean wLeftRookMoved;
+    private boolean wRightRookMoved;
+    private boolean bLeftRookMoved;
+    private boolean bRightRookMoved;
+
     
     public ChessBoard() {
         //board
         board = new String[8][8];
+        wKingMoved = false;
+        bKingMoved = false;
+        wLeftRookMoved = false;
+        wRightRookMoved = false;
+        bLeftRookMoved = false;
+        bRightRookMoved = false;
         boardSetup();
     }
     public void boardSetup() {
@@ -174,6 +187,23 @@ public class ChessBoard {
             
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
+            }
+            if (piece.equals("R")) {
+                if (startRow == 0 && startCol == 0) {
+                    wLeftRookMoved = true;
+                }
+                if (startRow == 0 && startCol == 7) {
+                    wRightRookMoved = true;
+                }
+
+            }
+            if (piece.equals("r")) {
+                if (startRow == 7 && startCol == 0) {
+                    bLeftRookMoved = true;
+                }
+                if (startRow == 7 && startCol == 7) {
+                    bRightRookMoved = true;
+                }
             }
             
             board[endRow][endCol] = piece;
@@ -348,6 +378,22 @@ public class ChessBoard {
         }
         int rowDiff = Math.abs(endRow - startRow);
         int colDiff = Math.abs(endCol - startCol);
+        if (rowDiff == 0 && colDiff == 2) {
+            if (!isCastle(startRow, startCol, endRow, endCol)) {
+                return false;
+            }
+            board[endRow][endCol] = piece;
+            board[startRow][startCol] = "*";
+            if (startCol < endCol) {
+                board[startRow][5] = board[startRow][7];
+                board[startRow][7] = "*";
+            }
+            else {
+                board[startRow][3] = board[startRow][0];
+                board[startRow][0] = "*";
+            }
+            return true;
+        }
         if (rowDiff > 1 || colDiff > 1) {
             return false;
         }
@@ -361,6 +407,12 @@ public class ChessBoard {
             
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
+            }
+            if (piece.equals("K")) {
+                wKingMoved = true;
+            }
+            if (piece.equals("k")) {
+                bKingMoved = true;
             }
             
             board[endRow][endCol] = piece;
@@ -583,18 +635,23 @@ public class ChessBoard {
                         if (piece.equals("P") || piece.equals("p")) {
                             moved = testBoard.pawnMove(r, c, a, b);
                         }
+                        
                         else if (piece.equals("R") || piece.equals("r")) {
                             moved = testBoard.rookMove(r, c, a, b);
                         }
+                        
                         else if (piece.equals("B") || piece.equals("b")) {
                             moved = testBoard.bishopMove(r, c, a, b);
                         }
+                        
                         else if (piece.equals("N") || piece.equals("n")) {
                             moved = testBoard.knightMove(r, c, a, b);
                         }
+                        
                         else if (piece.equals("Q") || piece.equals("q")) {
                             moved = testBoard.queenMove(r, c, a, b);
                         }
+                        
                         else if (piece.equals("K") || piece.equals("k")) {
                             moved = testBoard.kingMove(r, c, a, b);
                         }
@@ -606,6 +663,79 @@ public class ChessBoard {
                     }
                 }
             }
+        }
+        return true;
+    }
+    public boolean isCastle(int startRow, int startCol, int endRow, int endCol) {
+        String piece = board[startRow][startCol];
+        if (!piece.equals("K") && !piece.equals("k")) {
+            return false; 
+        }
+        
+        int rookCol;
+        if (endCol > startCol) {
+            rookCol = 7;
+        }
+        else {
+            rookCol = 0;
+        }
+        String rook = board[startRow][rookCol];
+        if (!rook.equals("R") && !rook.equals("r")) {
+            return false; 
+        }
+
+        if (isCheck(piece.equals("K"))) {
+            return false; 
+        }
+        ChessBoard testBoard = new ChessBoard(this);
+        testBoard.board[endRow][endCol] = piece;
+        testBoard.board[startRow][startCol] = "*";
+        if (testBoard.isCheck(piece.equals("K"))) {
+            return false; 
+        }
+        int direction;
+
+        if (endCol > startCol) {
+            direction = 1;
+        }
+        else {
+            direction = -1;
+        }
+
+        int middleCol = startCol + direction;
+        ChessBoard middleBoard = new ChessBoard(this);
+        middleBoard.board[startRow][middleCol] = piece;
+        middleBoard.board[startRow][startCol] = "*";
+
+        if (middleBoard.isCheck(piece.equals("K"))) {
+            return false;
+        }
+        
+        for (int c = startCol + direction; c != rookCol; c+= direction) {
+            if (!board[startRow][c].equals("*")) {
+                return false;
+            }
+        }
+        
+        int rookEndCol;
+
+        if (endCol > startCol) {
+            rookEndCol = endCol - 1;
+        }
+        else {
+            rookEndCol = endCol + 1;
+        }
+
+        if (piece.equals("K")) {
+            testBoard.board[startRow][rookEndCol] = "R";
+        }
+        else {
+        testBoard.board[startRow][rookEndCol] = "r";
+        }
+        testBoard.board[startRow][startCol] = "*";
+        
+        if (testBoard.isCheck(piece.equals("K"))) {
+            return false;
         }
         return true;
     }
