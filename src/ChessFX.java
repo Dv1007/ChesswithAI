@@ -6,6 +6,8 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.ChoiceDialog;
+import java.util.Arrays;
 
  public class ChessFX extends Application {
     ChessBoard board = new ChessBoard();
@@ -27,6 +29,8 @@ import javafx.scene.image.ImageView;
         else if (piece.equals("B")) {
             img = new Image("/pieces/wB.png", 50, 50, true, true);
         }
+
+
         else if (piece.equals("N")) {
             img = new Image("/pieces/wN.png", 50, 50, true, true);
         }
@@ -160,9 +164,37 @@ import javafx.scene.image.ImageView;
                 }
 
                 if (moved) {
-                    whiteTurn = !whiteTurn;
-                }
+                    String endPiece = board.getPiece(endRow, endCol);
+                    if (endPiece.equals("P") || endPiece.equals("p")) {
+                        if (endRow == 7 || endRow == 0) {
+                            ChoiceDialog<String> dialog = new ChoiceDialog<>("Queen",Arrays.asList("Queen", "Rook", "Bishop", "Knight"));
+                            dialog.setTitle("Pawn Promotion");
+                            dialog.setHeaderText("Choose a piece to promote");
+                            dialog.setContentText("Piece:");
+                            String result = dialog.showAndWait().orElse("Queen");
+                            String promotePiece;
+                            if (result.equals("Queen")) {
+                                promotePiece = "Q";
+                            }
+                            else if (result.equals("Rook")) {
+                                promotePiece = "R";
+                            }
+                            else if (result.equals("Bishop")) {
+                                promotePiece = "B";
+                            }
+                            else {
+                                promotePiece = "N";
+                            }
 
+                            if (endPiece.equals("p")) {
+                                promotePiece = promotePiece.toLowerCase();
+                            }
+                            System.out.println(promotePiece);
+                            board.pawnPromote(endRow, endCol, promotePiece);  
+                        }
+                    }
+                    whiteTurn = !whiteTurn;
+            }
                 dragPiece.setVisible(false);
                 startRow = -1;
                 startCol = -1;
@@ -182,7 +214,7 @@ import javafx.scene.image.ImageView;
     String color;
 
     if ((row + col) % 2 == 0) {
-        color = "#b58863";   
+        color = "#b58863"; 
     }
         
     else {
@@ -195,7 +227,7 @@ import javafx.scene.image.ImageView;
     "-fx-background-insets: 0; " +
     "-fx-background-radius: 0;"
     );
-}   
+}
 
     public void refreshBoard() {
     for (int row = 0; row < 8; row++) {
@@ -204,7 +236,6 @@ import javafx.scene.image.ImageView;
             if (piece.equals("*")) {
                 buttons[row][col].setGraphic(null);
             } 
-            
             else {
                 buttons[row][col].setGraphic(getPieceImage(piece));
             }
