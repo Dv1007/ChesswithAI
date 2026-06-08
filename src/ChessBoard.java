@@ -8,6 +8,9 @@ public class ChessBoard {
     private boolean wRightRookMoved;
     private boolean bLeftRookMoved;
     private boolean bRightRookMoved;
+    private int enPassantRow = -1;
+    private int enPassantCol = -1;
+    private boolean enPassant = false;
 
     
     public ChessBoard() {
@@ -78,6 +81,7 @@ public class ChessBoard {
     //pawn logic
     public boolean pawnMove(int startRow, int startCol, int endRow, int endCol) {
         String piece = board[startRow][startCol];
+        
         if (!piece.equals("P") && !piece.equals("p")) {
             return false; // Not a pawn
         }
@@ -119,17 +123,43 @@ public class ChessBoard {
 
         boolean whiteCapture = piece.equals("P") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
         boolean blackCapture = piece.equals("p") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
+    
+        if (moveDiagonal && moveForward) {
+            if (whiteCapture || blackCapture) {
+                legalMove = true;
+            }
+            if (enPassant && moveDiagonal && moveForward && endRow == enPassantRow && endCol == enPassantCol && board[endRow][endCol].equals("*")) {
+                legalMove = true;
 
-        if (moveDiagonal && moveForward && (whiteCapture || blackCapture)) {
-            legalMove = true;
-        }   
+                if (piece.equals("P")) {
+                    board[endRow - 1][endCol] = "*";
+                }
+                else {
+                    board[endRow + 1][endCol] = "*";
+                }
+            }
+        }
         
         if (legalMove) {
+            if (!((piece.equals("P") && startRow == 1 && endRow == 3) && !(piece.equals("p") && startRow == 6 && endRow == 4))) {
+                enPassant = false;
+                enPassantRow = -1;
+                enPassantCol = -1;
+            }
+            if (piece.equals("P") && startRow == 1 && endRow == 3) {
+                enPassantRow = 2;
+                enPassantCol = startCol;
+                enPassant = true;
+            }
+            else if (piece.equals("p") && startRow == 6 && endRow == 4) {
+                enPassantRow = 5;
+                enPassantCol = startCol;
+                enPassant = true;
+            }
             
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
             }
-            
             board[endRow][endCol] = piece;
             board[startRow][startCol] = "*";
         }
@@ -242,7 +272,7 @@ public class ChessBoard {
         int row = startRow + moveRow;
         int col = startCol + moveCol;
 
-        while (row != endRow) {
+        while (row != endRow || col != endCol) {
             if (!board[row][col].equals("*")) {
                 return false;
             }
@@ -384,6 +414,7 @@ public class ChessBoard {
             }
             board[endRow][endCol] = piece;
             board[startRow][startCol] = "*";
+
             if (startCol < endCol) {
                 board[startRow][5] = board[startRow][7];
                 board[startRow][7] = "*";
@@ -392,6 +423,7 @@ public class ChessBoard {
                 board[startRow][3] = board[startRow][0];
                 board[startRow][0] = "*";
             }
+    
             return true;
         }
         if (rowDiff > 1 || colDiff > 1) {
@@ -408,6 +440,9 @@ public class ChessBoard {
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
             }
+            board[endRow][endCol] = piece;
+            board[startRow][startCol] = "*";
+
             if (piece.equals("K")) {
                 wKingMoved = true;
             }
@@ -415,8 +450,9 @@ public class ChessBoard {
                 bKingMoved = true;
             }
             
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+            enPassant = false;
+            enPassantRow = -1;
+            enPassantCol = -1;
         }
         return legalMove;
     }
@@ -608,6 +644,15 @@ public class ChessBoard {
                 board[i][j] = other.board[i][j];
             }
         }
+        wKingMoved = other.wKingMoved;
+        bKingMoved = other.bKingMoved;
+        wLeftRookMoved = other.wLeftRookMoved;
+        wRightRookMoved = other.wRightRookMoved;
+        bLeftRookMoved = other.bLeftRookMoved;
+        bRightRookMoved = other.bRightRookMoved;
+        enPassant = other.enPassant;
+        enPassantRow = other.enPassantRow;
+        enPassantCol = other.enPassantCol;
     }
     
     public boolean isCheckmate(boolean isWhite) {
@@ -666,6 +711,64 @@ public class ChessBoard {
         }
         return true;
     }
+
+    public boolean isStalemate(boolean isWhite) {
+        if(isCheck(isWhite)) {
+            return false;
+        }
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                String piece = board[r][c];
+                if (piece.equals("*")) {
+                    continue;
+                }
+                
+                boolean isWhitePiece = piece.equals(piece.toUpperCase());
+                
+                if (isWhite != isWhitePiece) {
+                    continue;
+                }
+                
+                for (int a = 0; a < 8; a++) {
+                    for (int b = 0; b < 8; b++) {
+                        ChessBoard testBoard = new ChessBoard(this);
+                        boolean moved = false;
+
+                        if (piece.equals("P") || piece.equals("p")) {
+                            moved = testBoard.pawnMove(r, c, a, b);
+                        }
+                        
+                        else if (piece.equals("R") || piece.equals("r")) {
+                            moved = testBoard.rookMove(r, c, a, b);
+                        }
+                        
+                        else if (piece.equals("B") || piece.equals("b")) {
+                            moved = testBoard.bishopMove(r, c, a, b);
+                        }
+                        
+                        else if (piece.equals("N") || piece.equals("n")) {
+                            moved = testBoard.knightMove(r, c, a, b);
+                        }
+                        
+                        else if (piece.equals("Q") || piece.equals("q")) {
+                            moved = testBoard.queenMove(r, c, a, b);
+                        }
+                        
+                        else if (piece.equals("K") || piece.equals("k")) {
+                            moved = testBoard.kingMove(r, c, a, b);
+                        }
+
+                        if (moved && !testBoard.isCheck(isWhite)) {
+                            return false;
+                        }
+
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    
     public boolean isCastle(int startRow, int startCol, int endRow, int endCol) {
         String piece = board[startRow][startCol];
         if (!piece.equals("K") && !piece.equals("k")) {
@@ -684,8 +787,34 @@ public class ChessBoard {
             return false; 
         }
 
-        if (isCheck(piece.equals("K"))) {
+        if ((piece.equals("K") && wKingMoved)) {
             return false; 
+        }
+
+        if (piece.equals("k") && bKingMoved) {
+            return false;
+        }
+
+        if (isCheck(piece.equals("K"))) {
+            return false;
+        }
+
+        if (piece.equals("K")) {
+            if (rookCol == 0 && wLeftRookMoved) {
+                return false;
+            }
+            if (rookCol == 7 && wRightRookMoved) {
+                return false;
+            }    
+        }
+
+        if (piece.equals("k")) {
+            if (rookCol == 0 && bLeftRookMoved) {
+                return false;
+            }
+            if (rookCol == 7 && bRightRookMoved) {
+                return false;
+            }
         }
         ChessBoard testBoard = new ChessBoard(this);
         testBoard.board[endRow][endCol] = piece;
@@ -704,8 +833,8 @@ public class ChessBoard {
 
         int middleCol = startCol + direction;
         ChessBoard middleBoard = new ChessBoard(this);
-        middleBoard.board[startRow][middleCol] = piece;
         middleBoard.board[startRow][startCol] = "*";
+        middleBoard.board[startRow][middleCol] = piece;
 
         if (middleBoard.isCheck(piece.equals("K"))) {
             return false;
@@ -737,6 +866,36 @@ public class ChessBoard {
         if (testBoard.isCheck(piece.equals("K"))) {
             return false;
         }
+        return true;
+    }
+    public boolean pawnPromote(int row, int col, String piecePromote) {
+        String piece = board[row][col];
+        if (piece.equals("*")) {
+            return false;
+        }
+        boolean isWhite = piece.equals("P");
+        boolean isBlack = piece.equals("p");
+        if (!isWhite && !isBlack) {
+            return false;
+        }        
+        if (isWhite && row != 7) {
+            return false;
+        }
+        if (isBlack && row != 0) {
+            return false;
+        }
+        if (isWhite) {
+            if (!piecePromote.equals("R") && !piecePromote.equals("B") && !piecePromote.equals("N") && !piecePromote.equals("Q")) {
+                return false;
+            }
+        }
+        if (!isWhite) {
+            if (!piecePromote.equals("R") && !piecePromote.equals("B") && !piecePromote.equals("N") && !piecePromote.equals("Q")) {
+                return false;
+            }
+            piecePromote = piecePromote.toLowerCase();
+        }
+        board[row][col] = piecePromote;
         return true;
     }
 }
