@@ -898,4 +898,28 @@ public class ChessBoard {
         board[row][col] = piecePromote;
         return true;
     }
+    public boolean MakeMove(Move move) {
+        String piece = board[move.getStartRow()][move.getStartCol()];
+        boolean moved = false;
+        if (piece.equals("P") || piece.equals("p")) {
+            moved = pawnMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
+        
+        else if (piece.equals("R") || piece.equals("r")) {
+            moved = rookMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
+        
+        else if (piece.equals("B") || piece.equals("b")) {
+            moved = bishopMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
+
+        else if (piece.equals("N") || piece.equals("n")) {
+            moved = knightMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
+
+        else if (piece.equals("Q") || piece.equals("q")) {
+            moved = queenMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
+        return moved;
+    }
 }
