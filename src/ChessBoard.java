@@ -1,4 +1,4 @@
-
+import java.util.ArrayList;
 public class ChessBoard {
     
     private String[][] board;
@@ -86,6 +86,7 @@ public class ChessBoard {
             return false; // Not a pawn
         }
         boolean legalMove = false;
+        boolean enPassantCapture = false;
         int direction;
         
         if (piece.equals("P")) {
@@ -130,13 +131,7 @@ public class ChessBoard {
             }
             if (enPassant && moveDiagonal && moveForward && endRow == enPassantRow && endCol == enPassantCol && board[endRow][endCol].equals("*")) {
                 legalMove = true;
-
-                if (piece.equals("P")) {
-                    board[endRow - 1][endCol] = "*";
-                }
-                else {
-                    board[endRow + 1][endCol] = "*";
-                }
+                enPassantCapture = true;
             }
         }
         
@@ -162,6 +157,14 @@ public class ChessBoard {
             }
             board[endRow][endCol] = piece;
             board[startRow][startCol] = "*";
+            if (enPassantCapture) {
+                if (piece.equals("P")) {
+                    board[endRow - 1][endCol] = "*";
+                }
+                else {
+                    board[endRow + 1][endCol] = "*";
+                }
+            }
         }
         return legalMove;
     }
@@ -423,7 +426,12 @@ public class ChessBoard {
                 board[startRow][3] = board[startRow][0];
                 board[startRow][0] = "*";
             }
-    
+            if (piece.equals("K")) {
+                wKingMoved = true;
+            }
+            else {
+                bKingMoved = true;
+            }    
             return true;
         }
         if (rowDiff > 1 || colDiff > 1) {
@@ -920,6 +928,81 @@ public class ChessBoard {
         else if (piece.equals("Q") || piece.equals("q")) {
             moved = queenMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
+        else if (piece.equals("K") || piece.equals("k")) {
+            moved = kingMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
+        }
         return moved;
+    }
+
+    public ArrayList<Move> generateMoves(boolean isWhite) {
+        ArrayList<Move> legalMoves = new ArrayList<>();
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                String piece = board[r][c];
+
+                if (!piece.equals("*")) {
+                    boolean isWhitePiece = piece.equals(piece.toUpperCase());
+
+                    if (isWhitePiece == isWhite) {
+                        for (int a = 0; a < 8; a++) {
+                            for (int b = 0; b < 8; b++) {
+                                ChessBoard test = new ChessBoard(this);
+                                Move move = new Move(r, c, a, b);
+                                
+                                if (test.MakeMove(move)) {
+                                    legalMoves.add(move);
+                                }
+                            }
+                        }
+                    }
+                }
+            }  
+        }
+        return legalMoves;
+    }   
+    public int evaluateBoard() {
+        int score = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                String piece = board[r][c];
+                if (piece.equals("P")) {
+                    score += 100;
+                }
+                else if (piece.equals("N")) {
+                    score += 300;
+                }
+                else if (piece.equals("B")) {
+                    score += 300;
+                }
+                else if (piece.equals("R")) {
+                    score += 500;
+                }
+                else if (piece.equals("Q")) {
+                    score += 900;
+                }
+                else if (piece.equals("p")) {
+                    score -= 100;
+                }
+                else if (piece.equals("n")) {
+                    score -= 300;
+                }
+                else if (piece.equals("b")) {
+                    score -= 300; 
+                }
+                else if (piece.equals("r")) {
+                    score -= 500;
+                }
+                else if (piece.equals("q")) {
+                    score -= 900;
+                }
+                else if (isCheckmate(true)) {
+                    return -100000;    
+                }
+                else if (isCheckmate(false)) {
+                    return 100000;
+                }
+            }
+        }
+        return score;
     }
 }
