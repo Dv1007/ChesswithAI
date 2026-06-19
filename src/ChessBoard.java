@@ -170,6 +170,9 @@ public class ChessBoard {
     }
     //rook logic
     public boolean rookMove(int startRow, int startCol, int endRow, int endCol) {
+        if (startRow == endRow && startCol == endCol) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         if (!piece.equals("R") && !piece.equals("r")) {
             return false; //not a rook
@@ -184,6 +187,9 @@ public class ChessBoard {
         int moveCol = 0;
         
         if (sameRow) {
+            if (startCol == endCol) {
+                return false;
+            }
             if (startCol < endCol) {
                 moveCol = 1;
             }
@@ -204,6 +210,9 @@ public class ChessBoard {
         int col = startCol + moveCol;
 
         while (row != endRow || col != endCol) {
+            if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+                return false;
+            }
             if (!board[row][col].equals("*")) {
                 return false;
             }
@@ -248,6 +257,9 @@ public class ChessBoard {
 
     //bishop logic
     public boolean bishopMove(int startRow, int startCol, int endRow, int endCol) {
+        if (startRow == endRow && startCol == endCol) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         if (!piece.equals("B") && !piece.equals("b")) {
             return false; //not a bishop
@@ -302,6 +314,9 @@ public class ChessBoard {
 
     //knight logic
     public boolean knightMove(int startRow, int startCol, int endRow, int endCol) {
+        if (startRow == endRow && startCol == endCol) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         if (!piece.equals("N") && !piece.equals("n")) {
             return false; //not a knight
@@ -330,6 +345,9 @@ public class ChessBoard {
     }
     //queen logic
     public boolean queenMove(int startRow, int startCol, int endRow, int endCol) {
+        if (startRow == endRow && startCol == endCol) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         if (!piece.equals("Q") && !piece.equals("q")) {
             return false; //not a queen
@@ -349,8 +367,11 @@ public class ChessBoard {
             if (startCol < endCol) {
                 moveCol = 1;
             }
-            else {
+            else if (startCol > endCol) {
                 moveCol = -1;
+            }
+            else {
+                return false;
             }
         }
         else if (sameColumn) {
@@ -405,6 +426,9 @@ public class ChessBoard {
     }
     //king logic
     public boolean kingMove(int startRow, int startCol, int endRow, int endCol) {
+        if (startRow == endRow && startCol == endCol) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         if (!piece.equals("K") && !piece.equals("k")) {
             return false; //not a king
@@ -946,11 +970,13 @@ public class ChessBoard {
                     if (isWhitePiece == isWhite) {
                         for (int a = 0; a < 8; a++) {
                             for (int b = 0; b < 8; b++) {
-                                ChessBoard test = new ChessBoard(this);
-                                Move move = new Move(r, c, a, b);
+                                if (r != a || c != b) {
+                                    ChessBoard test = new ChessBoard(this);
+                                    Move move = new Move(r, c, a, b);
                                 
-                                if (test.MakeMove(move)) {
-                                    legalMoves.add(move);
+                                    if (test.MakeMove(move)) {
+                                        legalMoves.add(move);
+                                    }
                                 }
                             }
                         }
@@ -961,6 +987,12 @@ public class ChessBoard {
         return legalMoves;
     }   
     public int evaluateBoard() {
+        if (isCheckmate(true)) {
+            return -100000;    
+        }
+        if (isCheckmate(false)) {
+            return 100000;
+        }
         int score = 0;
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
@@ -994,12 +1026,6 @@ public class ChessBoard {
                 }
                 else if (piece.equals("q")) {
                     score -= 900;
-                }
-                else if (isCheckmate(true)) {
-                    return -100000;    
-                }
-                else if (isCheckmate(false)) {
-                    return 100000;
                 }
             }
         }
