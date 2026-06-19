@@ -10,6 +10,7 @@ import javafx.scene.control.ChoiceDialog;
 import java.util.Arrays;
 
  public class ChessFX extends Application {
+    ChessAI ai = new ChessAI();
     ChessBoard board = new ChessBoard();
     Button[][] buttons = new Button[8][8];
     int startRow = -1;
@@ -194,6 +195,13 @@ import java.util.Arrays;
                         }
                     }
                     whiteTurn = !whiteTurn;
+                    if (!whiteTurn) {
+                        Move aiMove = ai.getBestMove(board, false, 3);
+                        if (aiMove != null) {
+                            board.MakeMove(aiMove);
+                        }
+                        whiteTurn = true;
+                    }
             }
                 dragPiece.setVisible(false);
                 startRow = -1;
