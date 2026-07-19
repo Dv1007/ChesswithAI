@@ -8,7 +8,7 @@ public class ChessAI {
         ArrayList<Move> moves = board.generateMoves(isWhite);
         for (Move move : moves) {
             ChessBoard copy = new ChessBoard(board);
-            copy.MakeMove(move);
+            copy.makeMove(move);
             
             int score = minimax(copy, depth - 1, alpha, beta, !isWhite);
             if (bestMove == null) {
@@ -38,7 +38,7 @@ public class ChessAI {
             int maxEval = Integer.MIN_VALUE;
             for (Move move: moves) {
                 ChessBoard copy = new ChessBoard(board);
-                copy.MakeMove(move);
+                copy.makeMove(move);
                 int eval = minimax(copy, depth - 1, alpha, beta, false);
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
@@ -52,7 +52,7 @@ public class ChessAI {
             int minEval = Integer.MAX_VALUE;
             for (Move move : moves) {
                 ChessBoard copy = new ChessBoard(board);
-                copy.MakeMove(move);
+                copy.makeMove(move);
                 
                 int eval = minimax(copy, depth - 1, alpha, beta, true);
                 minEval = Math.min(minEval, eval);
