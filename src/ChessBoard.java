@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.HashMap;
+
 public class ChessBoard {
     
     private String[][] board;
@@ -11,6 +13,12 @@ public class ChessBoard {
     private int enPassantRow = -1;
     private int enPassantCol = -1;
     private boolean enPassant = false;
+    private HashMap<String, Integer> positionCount;
+    private boolean whiteTurn;
+    private boolean repeatDraw = false;
+    private int halfCount = 0;
+    private boolean fiftyMove = false;
+
 
     
     public ChessBoard() {
@@ -22,9 +30,13 @@ public class ChessBoard {
         wRightRookMoved = false;
         bLeftRookMoved = false;
         bRightRookMoved = false;
+        positionCount = new HashMap<>();
+        whiteTurn = true;
+        halfCount = 0;
         boardSetup();
+        setPosition();
     }
-    public void boardSetup() {
+    public void boardSetup(){
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 board[i][j] = "*";
@@ -80,6 +92,9 @@ public class ChessBoard {
     }
     //pawn logic
     public boolean pawnMove(int startRow, int startCol, int endRow, int endCol) {
+        if (endRow < 0 || endRow > 7 || endCol < 0 || endCol > 7) {
+            return false;
+        }
         String piece = board[startRow][startCol];
         
         if (!piece.equals("P") && !piece.equals("p")) {
@@ -111,8 +126,11 @@ public class ChessBoard {
         boolean moveWhite = piece.equals("P") && startRow == 1;
         boolean moveBlack = piece.equals("p") && startRow == 6;
         boolean moveSquare2 = sameColumn && endRow == startRow + 2 * direction;
-        boolean moveSpace = board[startRow + direction][startCol].equals("*") && board[endRow][endCol].equals("*");
+        boolean moveSpace = false;
 
+        if ((moveWhite || moveBlack) && moveSquare2) {
+            moveSpace = board[startRow + direction][startCol].equals("*") && board[endRow][endCol].equals("*");
+        }
         if ((moveWhite || moveBlack) && moveSquare2 && moveSpace) {
             legalMove = true;
         }
@@ -136,7 +154,7 @@ public class ChessBoard {
         }
         
         if (legalMove) {
-            if (!((piece.equals("P") && startRow == 1 && endRow == 3) && !(piece.equals("p") && startRow == 6 && endRow == 4))) {
+            if (!((piece.equals("P") && startRow == 1 && endRow == 3) || (piece.equals("p") && startRow == 6 && endRow == 4))) {
                 enPassant = false;
                 enPassantRow = -1;
                 enPassantCol = -1;
@@ -685,6 +703,11 @@ public class ChessBoard {
         enPassant = other.enPassant;
         enPassantRow = other.enPassantRow;
         enPassantCol = other.enPassantCol;
+        halfCount = other.halfCount;
+        fiftyMove = other.fiftyMove;
+        
+        whiteTurn = other.whiteTurn;
+        positionCount = new HashMap<>(other.positionCount);
     }
     
     public boolean isCheckmate(boolean isWhite) {
@@ -815,7 +838,12 @@ public class ChessBoard {
             rookCol = 0;
         }
         String rook = board[startRow][rookCol];
-        if (!rook.equals("R") && !rook.equals("r")) {
+
+        if (piece.equals("K") && !rook.equals("R")) {
+            return false;
+        }
+        
+        if (!rook.equals("k") && !rook.equals("r")) {
             return false; 
         }
 
@@ -930,8 +958,10 @@ public class ChessBoard {
         board[row][col] = piecePromote;
         return true;
     }
-    public boolean MakeMove(Move move) {
+    public boolean makeMove(Move move) {
         String piece = board[move.getStartRow()][move.getStartCol()];
+        boolean capture = !board[move.getEndRow()][move.getEndCol()].equals("*") || ((piece.equals("P") || piece.equals("p")) && enPassant && move.getEndRow() == enPassantRow && move.getEndCol() == enPassantCol);
+        boolean pawnMove = piece.equals("P") || piece.equals("p");
         boolean moved = false;
         if (piece.equals("P") || piece.equals("p")) {
             moved = pawnMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
@@ -955,6 +985,21 @@ public class ChessBoard {
         else if (piece.equals("K") || piece.equals("k")) {
             moved = kingMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
+
+        if (moved) {
+            if (capture || pawnMove) {
+                halfCount = 0;
+            }
+            else {
+                halfCount++;
+            }
+            if (halfCount >= 100) {
+                fiftyMove = true;
+            }
+
+            flipTurn();
+            threefoldRepetition();
+        }
         return moved;
     }
 
@@ -974,7 +1019,7 @@ public class ChessBoard {
                                     ChessBoard test = new ChessBoard(this);
                                     Move move = new Move(r, c, a, b);
                                 
-                                    if (test.MakeMove(move)) {
+                                    if (test.makeMove(move)) {
                                         legalMoves.add(move);
                                     }
                                 }
@@ -1031,4 +1076,67 @@ public class ChessBoard {
         }
         return score;
     }
+
+    public String getPosition() {
+        String pos = "";
+        
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                pos += board[r][c];
+            }
+        }
+
+        pos += wKingMoved;
+        pos += bKingMoved;
+        pos += wLeftRookMoved;
+        pos += wRightRookMoved;
+        pos += bLeftRookMoved;
+        pos += bRightRookMoved;
+        pos += enPassant;
+        pos += enPassantRow;
+        pos += enPassantCol;
+        pos += whiteTurn;
+
+        return pos;
+    }
+
+    public void setPosition() {
+        positionCount.put(getPosition(), 1);
+    }
+
+    public boolean threefoldRepetition() {
+        String pos = getPosition();
+        Integer count = positionCount.get(pos);
+        if (count == null) {
+            positionCount.put(pos, 1);
+            return false;
+        }
+        else {
+            count++;
+            positionCount.put(pos, count);
+
+            if (count >= 3) {
+                repeatDraw = true;
+            }
+        }
+        return repeatDraw;
+    }
+
+    public boolean repeatDraw() {
+        return repeatDraw;
+    }
+
+    public boolean whiteTurn() {
+        return whiteTurn;
+    }
+
+    public void flipTurn() {
+        whiteTurn = !whiteTurn;
+    }
+
+    public boolean fiftyMove() {
+        return fiftyMove;
+    }
 }
+
+        
