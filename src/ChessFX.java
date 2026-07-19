@@ -8,6 +8,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.ChoiceDialog;
 import java.util.Arrays;
+import javafx.scene.control.Alert;
 
  public class ChessFX extends Application {
     ChessAI ai = new ChessAI();
@@ -15,7 +16,6 @@ import java.util.Arrays;
     Button[][] buttons = new Button[8][8];
     int startRow = -1;
     int startCol = -1;
-    boolean whiteTurn = true;
     double dragOffsetX = 0;
     double dragOffsetY = 0;
 
@@ -102,13 +102,14 @@ import java.util.Arrays;
 
             btn.setOnMousePressed(e -> {
                 if (board.getPiece(r, c).equals("*")) return;
-                if (whiteTurn && Character.isLowerCase(board.getPiece(r, c).charAt(0))) return;
-                if (!whiteTurn && Character.isUpperCase(board.getPiece(r, c).charAt(0))) return;
+                if (board.whiteTurn() && Character.isLowerCase(board.getPiece(r, c).charAt(0))) return;
+                if (!board.whiteTurn() && Character.isUpperCase(board.getPiece(r, c).charAt(0))) return;
 
                 startRow = r;
                 startCol = c;
 
-                dragPiece.setImage(pieceImage.getImage());
+                String choosepiece = board.getPiece(r, c);
+                dragPiece.setImage(getPieceImage(piece).getImage());
                 dragPiece.setVisible(true);
                 dragPiece.setTranslateX(e.getSceneX() - 25);
                 dragPiece.setTranslateY(e.getSceneY() - 25);
@@ -140,29 +141,8 @@ import java.util.Arrays;
                 String movingPiece = board.getPiece(startRow, startCol);
                 boolean moved = false;
 
-                if (movingPiece.equals("P") || movingPiece.equals("p")) {
-                    moved = board.pawnMove(startRow, startCol, endRow, endCol);
-                } 
-                
-                else if (movingPiece.equals("R") || movingPiece.equals("r")) {
-                    moved = board.rookMove(startRow, startCol, endRow, endCol);
-                } 
-                
-                else if (movingPiece.equals("B") || movingPiece.equals("b")) {
-                    moved = board.bishopMove(startRow, startCol, endRow, endCol);
-                } 
-                
-                else if (movingPiece.equals("N") || movingPiece.equals("n")) {
-                    moved = board.knightMove(startRow, startCol, endRow, endCol);
-                } 
-                
-                else if (movingPiece.equals("Q") || movingPiece.equals("q")) {
-                    moved = board.queenMove(startRow, startCol, endRow, endCol);
-                } 
-                
-                else if (movingPiece.equals("K") || movingPiece.equals("k")) {
-                    moved = board.kingMove(startRow, startCol, endRow, endCol);
-                }
+                Move playerMove = new Move(startRow, startCol, endRow, endCol);
+                moved = board.makeMove(playerMove);
 
                 if (moved) {
                     String endPiece = board.getPiece(endRow, endCol);
@@ -194,19 +174,53 @@ import java.util.Arrays;
                             board.pawnPromote(endRow, endCol, promotePiece);  
                         }
                     }
-                    whiteTurn = !whiteTurn;
-                    if (!whiteTurn) {
+                    if (board.repeatDraw()) {
+                        endGame("Draw by threefold repetition!");
+                        return;
+                    }
+                    
+                    if (!board.whiteTurn()) {
+                        dragPiece.setVisible(false);
                         Move aiMove = ai.getBestMove(board, false, 3);
                         if (aiMove != null) {
-                            board.MakeMove(aiMove);
+                            board.makeMove(aiMove);
+                            if (board.repeatDraw()) {
+                                endGame("Draw by threefold repetition!");
+                                return;
+                            }
+                            int aiEndRow = aiMove.getEndRow();
+                            int aiEndCol = aiMove.getEndCol();
+                            String promotedPiece = board.getPiece(aiEndRow, aiEndCol);
+
+                            if (promotedPiece.equals("p") && aiEndRow == 0) {
+                                board.pawnPromote(aiEndRow, aiEndCol, "Q");
+                            }
+                            refreshBoard();
+
+                            if (board.isCheckmate(true)) {
+                                endGame("Checkmate! AI wins");
+                            }
+                            else if (board.isStalemate(true)) {
+                                endGame("Draw by stalemate!");
+                            }
                         }
-                        whiteTurn = true;
+                        else {
+                            if (board.isCheckmate(false)) {
+                                endGame("Checkmate! You win");
+                            }
+                            else if (board.isStalemate(false)) {
+                                endGame("Draw by stalemate!");
+                            }
+                        }
                     }
             }
                 dragPiece.setVisible(false);
                 startRow = -1;
                 startCol = -1;
 
+                dragPiece.setVisible(false);
+                startRow = -1;
+                startCol = -1;
                 refreshBoard();
             });
             grid.add(btn, col, 7 - row);
@@ -224,7 +238,7 @@ import java.util.Arrays;
     if ((row + col) % 2 == 0) {
         color = "#b58863"; 
     }
-        
+
     else {
         color = "#f0d9b5";
     }
@@ -249,4 +263,13 @@ import java.util.Arrays;
             }
         }
     }
-}};
+}
+
+    public void endGame(String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Game Over");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
