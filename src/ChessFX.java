@@ -10,7 +10,7 @@ import javafx.scene.control.ChoiceDialog;
 import java.util.Arrays;
 import javafx.scene.control.Alert;
 
- public class ChessFX extends Application {
+public class ChessFX extends Application {
     ChessAI ai = new ChessAI();
     ChessBoard board = new ChessBoard();
     Button[][] buttons = new Button[8][8];
@@ -19,44 +19,42 @@ import javafx.scene.control.Alert;
     double dragOffsetX = 0;
     double dragOffsetY = 0;
 
-    public ImageView getPieceImage(String piece) {
+    public ImageView getPieceImage(byte piece) {
         Image img;
-        if (piece.equals("P")) {
+        if (piece == 1) {
             img = new Image("/pieces/wP.png", 50, 50, true, true);
         } 
-        else if (piece.equals("R")) {
+        else if (piece == 4) {
             img = new Image("/pieces/wR.png", 50, 50, true, true);
         }
-        else if (piece.equals("B")) {
+        else if (piece == 3) {
             img = new Image("/pieces/wB.png", 50, 50, true, true);
         }
-
-
-        else if (piece.equals("N")) {
+        else if (piece == 2) {
             img = new Image("/pieces/wN.png", 50, 50, true, true);
         }
-        else if (piece.equals("Q")) {
+        else if (piece == 5) {
             img = new Image("/pieces/wQ.png", 50, 50, true, true);
         }
-        else if (piece.equals("K")) {
+        else if (piece == 6) {
             img = new Image("/pieces/wK.png", 50, 50, true, true);
         }
-        else if (piece.equals("p")) {
+        else if (piece == -1) {
             img = new Image("/pieces/bP.png", 50, 50, true, true);
         }
-        else if (piece.equals("r")) {
+        else if (piece == -4) {
             img = new Image("/pieces/bR.png", 50, 50, true, true);
         }
-        else if (piece.equals("b")) {
+        else if (piece == -3) {
             img = new Image("/pieces/bB.png", 50, 50, true, true);
         }
-        else if (piece.equals("n")) {
+        else if (piece == -2) {
             img = new Image("/pieces/bN.png", 50, 50, true, true);
         }
-        else if (piece.equals("q")) {
+        else if (piece == -5) {
             img = new Image("/pieces/bQ.png", 50, 50, true, true);
         }
-        else if (piece.equals("k")) {
+        else if (piece == -6) {
             img = new Image("/pieces/bK.png", 50, 50, true, true);
         }
         else {
@@ -83,8 +81,7 @@ import javafx.scene.control.Alert;
 
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
-            String piece = board.getPiece(row, col);
-
+            byte piece = board.getPiece(row, col);
             Button btn = new Button();
             btn.setPrefSize(60, 60);
             btn.setMinSize(60, 60);
@@ -101,15 +98,20 @@ import javafx.scene.control.Alert;
             btn.setGraphic(pieceImage);
 
             btn.setOnMousePressed(e -> {
-                if (board.getPiece(r, c).equals("*")) return;
-                if (board.whiteTurn() && Character.isLowerCase(board.getPiece(r, c).charAt(0))) return;
-                if (!board.whiteTurn() && Character.isUpperCase(board.getPiece(r, c).charAt(0))) return;
+                if (board.getPiece(r, c) == 0) {
+                    return;
+                }
+                if (board.whiteTurn() && board.getPiece(r, c) < 0) {
+                    return;
+                }
+                if (!board.whiteTurn() && board.getPiece(r, c) > 0) {
+                    return;    
+                }
 
                 startRow = r;
                 startCol = c;
 
-                String choosepiece = board.getPiece(r, c);
-                dragPiece.setImage(getPieceImage(piece).getImage());
+                dragPiece.setImage(getPieceImage(board.getPiece(r, c)).getImage());
                 dragPiece.setVisible(true);
                 dragPiece.setTranslateX(e.getSceneX() - 25);
                 dragPiece.setTranslateY(e.getSceneY() - 25);
@@ -118,14 +120,17 @@ import javafx.scene.control.Alert;
             });
 
             btn.setOnMouseDragged(e -> {
-                if (startRow == -1) return;
+                if (startRow == -1) {
+                    return;
+                }
                 dragPiece.setTranslateX(e.getSceneX() - 25);
                 dragPiece.setTranslateY(e.getSceneY() - 25);
             });
 
             btn.setOnMouseReleased(e -> {
-
-                if (startRow == -1) return;
+                if (startRow == -1) {
+                    return;
+                }
 
                 int endCol = (int)(e.getSceneX() / 60);
                 int endRow = 7 - (int)(e.getSceneY() / 60);
@@ -138,64 +143,92 @@ import javafx.scene.control.Alert;
                     return;
                 }
 
-                String movingPiece = board.getPiece(startRow, startCol);
                 boolean moved = false;
 
                 Move playerMove = new Move(startRow, startCol, endRow, endCol);
                 moved = board.makeMove(playerMove);
 
                 if (moved) {
-                    String endPiece = board.getPiece(endRow, endCol);
-                    if (endPiece.equals("P") || endPiece.equals("p")) {
+                    byte endPiece = board.getPiece(endRow, endCol);
+                    if (Math.abs(endPiece) == 1) {
                         if (endRow == 7 || endRow == 0) {
                             ChoiceDialog<String> dialog = new ChoiceDialog<>("Queen",Arrays.asList("Queen", "Rook", "Bishop", "Knight"));
                             dialog.setTitle("Pawn Promotion");
                             dialog.setHeaderText("Choose a piece to promote");
                             dialog.setContentText("Piece:");
                             String result = dialog.showAndWait().orElse("Queen");
-                            String promotePiece;
+                            byte promotePiece;
+
                             if (result.equals("Queen")) {
-                                promotePiece = "Q";
+                                promotePiece = 5;
                             }
                             else if (result.equals("Rook")) {
-                                promotePiece = "R";
+                                promotePiece = 4;
                             }
                             else if (result.equals("Bishop")) {
-                                promotePiece = "B";
+                                promotePiece = 3;
                             }
                             else {
-                                promotePiece = "N";
+                                promotePiece = 2;
                             }
 
-                            if (endPiece.equals("p")) {
-                                promotePiece = promotePiece.toLowerCase();
+                            if (endPiece < 0) {
+                                promotePiece = (byte) - promotePiece;
                             }
-                            System.out.println(promotePiece);
-                            board.pawnPromote(endRow, endCol, promotePiece);  
+                            
+                            board.pawnPromote(endRow, endCol, promotePiece); 
                         }
                     }
-                    if (board.repeatDraw()) {
-                        endGame("Draw by threefold repetition!");
+                    if (board.isDraw()) {
+                        if (board.repeatDraw()) {
+                            endGame("Draw by threefold repetition!");
+                        }
+                        else if (board.fiftyMove()) {
+                            endGame("Draw by fifty move rule!");
+                        }
+                        else if (board.insufficientMaterial()) {
+                            endGame("Draw by insufficient material!");
+                        }
+                        else {
+                            endGame("Draw by stalemate");
+                        }
                         return;
                     }
-                    
+
+                    if (board.isCheckmate(false)) {
+                        endGame("Checkmate! You win");
+                        return;
+                    }     
+                                   
                     if (!board.whiteTurn()) {
                         dragPiece.setVisible(false);
                         Move aiMove = ai.getBestMove(board, false, 3);
                         if (aiMove != null) {
                             board.makeMove(aiMove);
-                            if (board.repeatDraw()) {
-                                endGame("Draw by threefold repetition!");
-                                return;
-                            }
                             int aiEndRow = aiMove.getEndRow();
                             int aiEndCol = aiMove.getEndCol();
-                            String promotedPiece = board.getPiece(aiEndRow, aiEndCol);
+                            byte promotedPiece = board.getPiece(aiEndRow, aiEndCol);
 
-                            if (promotedPiece.equals("p") && aiEndRow == 0) {
-                                board.pawnPromote(aiEndRow, aiEndCol, "Q");
+                            if (promotedPiece == -1 && aiEndRow == 0) {
+                                board.pawnPromote(aiEndRow, aiEndCol, (byte) - 5);
                             }
                             refreshBoard();
+                            
+                            if (board.isDraw()) {
+                                if (board.repeatDraw()) {
+                                    endGame("Draw by threefold repetition!");
+                                }
+                                else if (board.fiftyMove()) {
+                                    endGame("Draw by fifty move rule!");
+                                }
+                                else if (board.insufficientMaterial()) {
+                                    endGame("Draw by insufficient material!");
+                                }
+                                else {
+                                    endGame("Draw by stalemate");
+                                }
+                                return;
+                            }
 
                             if (board.isCheckmate(true)) {
                                 endGame("Checkmate! AI wins");
@@ -213,7 +246,7 @@ import javafx.scene.control.Alert;
                             }
                         }
                     }
-            }
+                }
                 dragPiece.setVisible(false);
                 startRow = -1;
                 startCol = -1;
@@ -252,18 +285,18 @@ import javafx.scene.control.Alert;
 }
 
     public void refreshBoard() {
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            String piece = board.getPiece(row, col);
-            if (piece.equals("*")) {
-                buttons[row][col].setGraphic(null);
-            } 
-            else {
-                buttons[row][col].setGraphic(getPieceImage(piece));
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                byte piece = board.getPiece(row, col);
+                if (piece == 0) {
+                    buttons[row][col].setGraphic(null);
+                } 
+                else {
+                    buttons[row][col].setGraphic(getPieceImage(piece));
+                }
             }
         }
     }
-}
 
     public void endGame(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
