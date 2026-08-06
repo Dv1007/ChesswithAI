@@ -3,7 +3,7 @@ import java.util.HashMap;
 
 public class ChessBoard {
     
-    private String[][] board;
+    private byte[] board;
     private boolean wKingMoved;
     private boolean bKingMoved;
     private boolean wLeftRookMoved;
@@ -19,11 +19,9 @@ public class ChessBoard {
     private int halfCount = 0;
     private boolean fiftyMove = false;
 
-
-    
     public ChessBoard() {
         //board
-        board = new String[8][8];
+        board = new byte[64];
         wKingMoved = false;
         bKingMoved = false;
         wLeftRookMoved = false;
@@ -36,151 +34,180 @@ public class ChessBoard {
         boardSetup();
         setPosition();
     }
+
     public void boardSetup(){
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                board[i][j] = "*";
-            }
+        for (int i = 0; i < 64; i++) {
+            board[i] = 0;
         }
-    
-    for (int j = 0; j < 8; j++) {
-        //white pawns
-        board[1][j] = "P";
-        //black pawns
-        board[6][j] = "p";
+        wKingMoved = false;
+        bKingMoved = false;
+        wLeftRookMoved = false;
+        wRightRookMoved = false;
+        bLeftRookMoved = false;
+        bRightRookMoved = false;
+        enPassant = false;
+        enPassantRow = -1;
+        enPassantCol = -1;
+        whiteTurn = true;
+        halfCount = 0;
+        fiftyMove = false;
+        repeatDraw = false;
+
+        board[0] = 4;
+        board[1] = 2;
+        board[2] = 3;
+        board[3] = 5;
+        board[4] = 6;
+        board[5] = 3;
+        board[6] = 2;
+        board[7] = 4;
+        
+        for (int i = 8; i < 16; i++) {
+            board[i] = 1;
+        }
+        board[56] = -4;
+        board[57] = -2;
+        board[58] = -3;
+        board[59] = -5;
+        board[60] = -6;
+        board[61] = -3;
+        board[62] = -2;
+        board[63] = -4;
+
+        for (int i = 48; i < 56; i++) {
+            board[i] = -1;
+        }
     }
-    //white rooks
-    board[0][0] = "R";
-    board[0][7] = "R";
-    //black rooks
-    board[7][0] = "r";
-    board[7][7] = "r";
-    //Queens
-    board[0][3] = "Q";
-    board[7][3] = "q";
-    //white bishops
-    board[0][2] = "B";
-    board[0][5] = "B";
-    //black bishops
-    board[7][2] = "b";
-    board[7][5] = "b";
-    //white knights
-    board[0][1] = "N";
-    board[0][6] = "N";
-    //black knights
-    board[7][1] = "n";
-    board[7][6] = "n";
-    //Kings
-    board[0][4] = "K";
-    board[7][4] = "k";
-    } 
+
     public void printBoard() {
         for (int i = 7; i >= 0; i--) {
             for (int j = 0; j < 8; j++) {
-                System.out.print(board[i][j] + " ");
+                System.out.print(board[index(i, j)] + " ");
             }
             System.out.println();
         }
     }
-    
-    public String getPiece(int row, int col) {
-        return board[row][col];
+
+    public byte getPiece(int row, int col) {
+        return board[index(row, col)];
     }
 
-    public void setPiece(int row, int col, String piece) {
-        board[row][col] = piece;
+    public byte[] getBoardState() {
+        byte[] boardState = new byte[64];
+        int index = 0;
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                boardState[index] = convertPiece(board[index(row, col)]);
+                index++;
+            }
+        }
+        return boardState;
+    }
+
+    public void setPiece(int row, int col, byte piece) {
+        board[index(row, col)] = piece;
     }
     //pawn logic
     public boolean pawnMove(int startRow, int startCol, int endRow, int endCol) {
         if (endRow < 0 || endRow > 7 || endCol < 0 || endCol > 7) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        
-        if (!piece.equals("P") && !piece.equals("p")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 1 && piece != -1) {
             return false; // Not a pawn
         }
+
         boolean legalMove = false;
         boolean enPassantCapture = false;
         int direction;
         
-        if (piece.equals("P")) {
+        if (piece == 1) {
             direction = 1;
         }
-        else if (piece.equals("p")) {
+        else if (piece == -1) {
             direction = -1;
         }
         else {
             direction = -1;
         }
-    
         // One Square
         boolean sameColumn = endCol == startCol;
         boolean moveSquare1 = endRow == startRow + direction;
-        boolean emptySquare = board[endRow][endCol].equals("*");
+        boolean emptySquare = board[index(endRow, endCol)]== 0;
 
         if (sameColumn && moveSquare1 && emptySquare) {
             legalMove = true;
         }
         //Two Squares
-        boolean moveWhite = piece.equals("P") && startRow == 1;
-        boolean moveBlack = piece.equals("p") && startRow == 6;
+        boolean moveWhite = piece == 1 && startRow == 1;
+        boolean moveBlack = piece == -1 && startRow == 6;
         boolean moveSquare2 = sameColumn && endRow == startRow + 2 * direction;
         boolean moveSpace = false;
 
         if ((moveWhite || moveBlack) && moveSquare2) {
-            moveSpace = board[startRow + direction][startCol].equals("*") && board[endRow][endCol].equals("*");
+            moveSpace = board[index(startRow + direction, startCol)]== 0 && board[index(endRow, endCol)]== 0;
         }
         if ((moveWhite || moveBlack) && moveSquare2 && moveSpace) {
             legalMove = true;
         }
-
         //diagonal capture
         boolean moveDiagonal = Math.abs(endCol - startCol) == 1;
         boolean moveForward = endRow == startRow + direction;
-        String loc = board[endRow][endCol];
+        byte loc = board[index(endRow, endCol)];
+        boolean opponentPiece = false;
 
-        boolean whiteCapture = piece.equals("P") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("p") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
+        if (piece == 1 && loc < 0) {
+            opponentPiece = true;
+        }
+
+        if (piece == -1 && loc > 0) {
+            opponentPiece = true;
+        }
     
         if (moveDiagonal && moveForward) {
-            if (whiteCapture || blackCapture) {
+            if (opponentPiece) {
                 legalMove = true;
             }
-            if (enPassant && moveDiagonal && moveForward && endRow == enPassantRow && endCol == enPassantCol && board[endRow][endCol].equals("*")) {
+
+            boolean target = (piece == 1 && endRow == 5) || (piece == -1 && endRow == 2);
+
+            if (enPassant && target && endRow == enPassantRow && endCol == enPassantCol && loc == 0) {
                 legalMove = true;
                 enPassantCapture = true;
             }
         }
         
         if (legalMove) {
-            if (!((piece.equals("P") && startRow == 1 && endRow == 3) || (piece.equals("p") && startRow == 6 && endRow == 4))) {
-                enPassant = false;
-                enPassantRow = -1;
-                enPassantCol = -1;
+            if (leaveInCheck(startRow, startCol, endRow, endCol)) {
+                return false;
             }
-            if (piece.equals("P") && startRow == 1 && endRow == 3) {
+            if (piece == 1 && startRow == 1 && endRow == 3) {
                 enPassantRow = 2;
                 enPassantCol = startCol;
                 enPassant = true;
             }
-            else if (piece.equals("p") && startRow == 6 && endRow == 4) {
+            else if (piece == -1 && startRow == 6 && endRow == 4) {
                 enPassantRow = 5;
                 enPassantCol = startCol;
                 enPassant = true;
             }
-            
-            if (leaveInCheck(startRow, startCol, endRow, endCol)) {
-                return false;
+            else {
+                enPassant = false;
+                enPassantRow = -1;
+                enPassantCol = -1;
             }
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
+
             if (enPassantCapture) {
-                if (piece.equals("P")) {
-                    board[endRow - 1][endCol] = "*";
+                if (piece == 1) {
+                    board[index(endRow - 1, endCol)] = 0;
                 }
                 else {
-                    board[endRow + 1][endCol] = "*";
+                    board[index(endRow + 1, endCol)] = 0;
                 }
             }
         }
@@ -191,16 +218,20 @@ public class ChessBoard {
         if (startRow == endRow && startCol == endCol) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        if (!piece.equals("R") && !piece.equals("r")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 4 && piece != -4) {
             return false; //not a rook
         }
+
         boolean sameRow = startRow == endRow;
         boolean sameColumn = startCol == endCol;
 
         if (!sameRow && !sameColumn) {
             return false;
         }
+
         int moveRow = 0;
         int moveCol = 0;
         
@@ -231,24 +262,23 @@ public class ChessBoard {
             if (row < 0 || row >= 8 || col < 0 || col >= 8) {
                 return false;
             }
-            if (!board[row][col].equals("*")) {
+            if (board[index(row, col)] != 0) {
                 return false;
             }
             row = row + moveRow;
             col = col + moveCol;
         }
         
-        String loc = board[endRow][endCol];
-        boolean whiteCapture = piece.equals("R") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("r") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
-        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        byte loc = board[index(endRow, endCol)];
+        boolean whiteCapture = piece == 4 && loc < 0;
+        boolean blackCapture = piece == -4 && loc > 0;
+        boolean legalMove = loc== 0 || whiteCapture || blackCapture;
         
         if (legalMove) {
-            
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
             }
-            if (piece.equals("R")) {
+            if (piece == 4) {
                 if (startRow == 0 && startCol == 0) {
                     wLeftRookMoved = true;
                 }
@@ -257,7 +287,7 @@ public class ChessBoard {
                 }
 
             }
-            if (piece.equals("r")) {
+            if (piece == -4) {
                 if (startRow == 7 && startCol == 0) {
                     bLeftRookMoved = true;
                 }
@@ -266,20 +296,21 @@ public class ChessBoard {
                 }
             }
             
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
+
         }
         return legalMove;
     }
-
-
     //bishop logic
     public boolean bishopMove(int startRow, int startCol, int endRow, int endCol) {
         if (startRow == endRow && startCol == endCol) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        if (!piece.equals("B") && !piece.equals("b")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 3 && piece != -3) {
             return false; //not a bishop
         } 
 
@@ -295,6 +326,7 @@ public class ChessBoard {
         else {
             moveRow = -1;
         }
+
         if (startCol < endCol) {
             moveCol = 1;
         }
@@ -306,17 +338,17 @@ public class ChessBoard {
         int col = startCol + moveCol;
 
         while (row != endRow || col != endCol) {
-            if (!board[row][col].equals("*")) {
+            if (board[index(row, col)] != 0) {
                 return false;
             }
             row  = row + moveRow;
             col = col + moveCol;
         }
 
-        String loc = board[endRow][endCol];
-        boolean whiteCapture = piece.equals("B") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("b") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
-        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        byte loc = board[index(endRow, endCol)];
+        boolean whiteCapture = piece == 3 && loc < 0;
+        boolean blackCapture = piece == -3 && loc > 0;
+        boolean legalMove = loc== 0 || whiteCapture || blackCapture;
         
         if (legalMove) {
             
@@ -324,40 +356,42 @@ public class ChessBoard {
                 return false;
             }
             
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
         }
         return legalMove;
     }
-
     //knight logic
     public boolean knightMove(int startRow, int startCol, int endRow, int endCol) {
         if (startRow == endRow && startCol == endCol) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        if (!piece.equals("N") && !piece.equals("n")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 2 && piece != -2) {
             return false; //not a knight
         } 
+
         int rowDiff = Math.abs(endRow -startRow);
         int colDiff = Math.abs(endCol - startCol);
         
         if (!((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2))) {
             return false;
         }
-        String loc = board[endRow][endCol];
-        boolean whiteCapture = piece.equals("N") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("n") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
-        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        byte loc = board[index(endRow, endCol)];
+        boolean whiteCapture = piece == 2 && loc < 0;
+        boolean blackCapture = piece == -2 && loc > 0;
+        boolean legalMove = loc== 0 || whiteCapture || blackCapture;
         
         if (legalMove) {
-            
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
             }
             
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
+
         }
         return legalMove;
     }
@@ -366,8 +400,10 @@ public class ChessBoard {
         if (startRow == endRow && startCol == endCol) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        if (!piece.equals("Q") && !piece.equals("q")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 5 && piece != -5) {
             return false; //not a queen
         } 
         //combine bishop and rook logic
@@ -419,17 +455,18 @@ public class ChessBoard {
         int col = startCol + moveCol;
 
         while (row != endRow || col != endCol) {
-            if (!board[row][col].equals("*")) {
+            if (board[index(row, col)] != 0) {
                 return false;
             }
+        
             row  = row + moveRow;
             col = col + moveCol;
         }
 
-        String loc = board[endRow][endCol];
-        boolean whiteCapture = piece.equals("Q") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("q") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
-        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        byte loc = board[index(endRow, endCol)];
+        boolean whiteCapture = piece == 5 && loc < 0;
+        boolean blackCapture = piece == -5 && loc > 0;
+        boolean legalMove = loc== 0 || whiteCapture || blackCapture;
         
         if (legalMove) {
             
@@ -437,8 +474,9 @@ public class ChessBoard {
                 return false;
             }
             
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
+
         }
         return legalMove;
     }
@@ -447,28 +485,33 @@ public class ChessBoard {
         if (startRow == endRow && startCol == endCol) {
             return false;
         }
-        String piece = board[startRow][startCol];
-        if (!piece.equals("K") && !piece.equals("k")) {
+
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 6 && piece != -6) {
             return false; //not a king
         }
+
         int rowDiff = Math.abs(endRow - startRow);
         int colDiff = Math.abs(endCol - startCol);
+
         if (rowDiff == 0 && colDiff == 2) {
             if (!isCastle(startRow, startCol, endRow, endCol)) {
                 return false;
             }
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
+
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
 
             if (startCol < endCol) {
-                board[startRow][5] = board[startRow][7];
-                board[startRow][7] = "*";
+                board[index(startRow, 5)] = board[index(startRow, 7)];
+                board[index(startRow, 7)] = 0;
             }
             else {
-                board[startRow][3] = board[startRow][0];
-                board[startRow][0] = "*";
+                board[index(startRow, 3)] = board[index(startRow, 0)];
+                board[index(startRow, 0)] = 0;
             }
-            if (piece.equals("K")) {
+            if (piece == 6) {
                 wKingMoved = true;
             }
             else {
@@ -480,61 +523,65 @@ public class ChessBoard {
             return false;
         }
 
-        String loc = board[endRow][endCol];
-        boolean whiteCapture = piece.equals("K") && (loc.equals("p") || loc.equals("r") || loc.equals("n") || loc.equals("b") || loc.equals("q") || loc.equals("k"));
-        boolean blackCapture = piece.equals("k") && (loc.equals("P") || loc.equals("R") || loc.equals("N") || loc.equals("B") || loc.equals("Q") || loc.equals("K"));
-        boolean legalMove = loc.equals("*") || whiteCapture || blackCapture;
+        byte loc = board[index(endRow, endCol)];
+        boolean whiteCapture = piece == 6 && loc < 0;
+        boolean blackCapture = piece == -6 && loc > 0;
+        boolean legalMove = loc== 0 || whiteCapture || blackCapture;
         
         if (legalMove) {
-            
             if (leaveInCheck(startRow, startCol, endRow, endCol)) {
                 return false;
             }
-            board[endRow][endCol] = piece;
-            board[startRow][startCol] = "*";
 
-            if (piece.equals("K")) {
+            board[index(endRow, endCol)] = piece;
+            board[index(startRow, startCol)] = 0;
+
+            if (piece == 6) {
                 wKingMoved = true;
             }
-            if (piece.equals("k")) {
+            if (piece == -6) {
                 bKingMoved = true;
             }
             
             enPassant = false;
             enPassantRow = -1;
             enPassantCol = -1;
+
         }
         return legalMove;
     }
     public boolean isCheck(boolean whiteKing) {
         int kingRow = -1;
         int kingCol = -1;
-        String king;
+        byte king;
+
         if (whiteKing) {
-            king = "K";
+            king = 6;
         }
         else {
-            king = "k";
+            king = -6;
         }
-            for (int r = 0; r < 8; r++) {
-                for (int c = 0; c < 8; c++) {
-                    if (board[r][c].equals(king)) {
-                        kingRow = r;
-                        kingCol = c;
-                    }
-                }
-            }
-            if (kingRow == -1 || kingCol == -1) {
-                return false;
-            }
-
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                String piece = board[r][c];
-                if (piece.equals("*")) {
+                if (board[index(r, c)] == king) {
+                    kingRow = r;
+                    kingCol = c;
+                }
+            }
+        }
+
+        if (kingRow == -1 || kingCol == -1) {
+            return false;
+        }
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                byte piece = board[index(r, c)];
+
+                if (piece == 0) {
                     continue;
                 }
-                boolean isWhite = piece.equals(piece.toUpperCase());
+                boolean isWhite = piece > 0;
+
                 if (whiteKing && !isWhite) {
                     if (attackKing(r, c, kingRow, kingCol)) {
                         return true;
@@ -550,24 +597,25 @@ public class ChessBoard {
         return false;
     }
     public boolean attackKing(int startRow, int startCol, int kingRow, int kingCol) {
-        String piece = board[startRow][startCol];
-        if (piece.equals("P")) {
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece == 1) {
             if (kingRow == startRow + 1) {
                 if (kingCol == startCol + 1 || kingCol == startCol - 1) {
                     return true;
                 }
             }
         }
-        else if (piece.equals("p")) {
+        else if (piece == -1) {
             if (kingRow == startRow - 1) {
                 if (kingCol == startCol + 1 || kingCol == startCol - 1) {
                     return true;
                 }
             }
         }
-        else if (piece.equals("R") || piece.equals("r") || piece.equals("B") || piece.equals("b") || piece.equals("Q") || piece.equals("q")) {
-            boolean isRook = piece.equals("R") || piece.equals("r") || piece.equals("Q") || piece.equals("q");
-            boolean isBishop = piece.equals("B") || piece.equals("b") || piece.equals("Q") || piece.equals("q");
+        else if (piece == 4 || piece == -4 || piece == 3 || piece == -3 || piece == 5 || piece == -5) {
+            boolean isRook = piece == 4 || piece == -4 || piece == 5 || piece == -5;
+            boolean isBishop = piece == 3 || piece == -3 || piece == 5 || piece == -5;
 
             if (isRook) {
                 if (startRow == kingRow || startCol == kingCol) {
@@ -584,7 +632,7 @@ public class ChessBoard {
                         boolean blockMove = false;
 
                         while (c != kingCol) {
-                            if (!board[startRow][c].equals("*")) {
+                            if (board[index(startRow, c)] != 0) {
                                 blockMove = true;
                                 break;
                             }
@@ -602,11 +650,19 @@ public class ChessBoard {
                         else {
                             move = -1;    
                         }
+
                         int r = startRow + move;
                         boolean blockMove = false;
+
                         while (r != kingRow) {
-                            if (!board[r][startCol].equals("*")) {
-                                blockMove = true;
+                            if (r < 0) {
+                                break;
+                            }
+                            if (r >= 8) {
+                                break;
+                            }
+                            if (board[index(r, startCol)] != 0) {
+                                blockMove= true;
                                 break;
                             }
                             r += move;
@@ -629,7 +685,6 @@ public class ChessBoard {
                     else {
                         rowMove = -1;
                     }
-
                     if (kingCol > startCol) {
                         colMove = 1;
                     }
@@ -641,8 +696,11 @@ public class ChessBoard {
                     int c = startCol + colMove;
                     boolean blockMove = false;
                     
-                    while (r != kingRow) {
-                        if (!board[r][c].equals("*")) {
+                    while (r != kingRow && c != kingCol) {
+                        if (r < 0 || r >= 8 || c < 0 || c >= 8) {
+                            return false;
+                        }
+                        if (board[index(r, c)] != 0) {
                             blockMove = true;
                             break;
                         }
@@ -655,45 +713,53 @@ public class ChessBoard {
                 }
             }
         }
-            if (piece.equals("N") || piece.equals("n")) {
-                int rowDiff = Math.abs(kingRow - startRow);
-                int colDiff = Math.abs(kingCol - startCol);
-                if ((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2)) {
-                    return true;
-                }
+        if (piece == 2 || piece == -2) {
+            int rowDiff = Math.abs(kingRow - startRow);
+            int colDiff = Math.abs(kingCol - startCol);
+
+            if ((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2)) {
+                return true;
             }
-            if (piece.equals("K") || piece.equals("k")) {
-                int rowDiff = Math.abs(kingRow - startRow);
-                int colDiff = Math.abs(kingCol - startCol);
-                if (rowDiff <= 1 && colDiff <= 1) {
-                    return true;
-                }
+        }
+        if (piece == 6 || piece == -6) {
+            int rowDiff = Math.abs(kingRow - startRow);
+            int colDiff = Math.abs(kingCol - startCol);
+
+            if (rowDiff <= 1 && colDiff <= 1) {
+                return true;
             }
-            return false;
-        }   
+        }
+        return false;
+    }   
     public boolean leaveInCheck(int startRow, int startCol, int endRow, int endCol) {
-        String piece = board[startRow][startCol];
-        String temp = board[endRow][endCol];
-        board[endRow][endCol] = piece;
-        board[startRow][startCol] = "*";
+        byte piece = board[index(startRow, startCol)];
+        byte temp = board[index(endRow, endCol)];
+
+        board[index(endRow, endCol)] = piece;
+        board[index(startRow, startCol)] = 0;
         boolean inCheck;
-        if (piece.equals(piece.toUpperCase())) {
+
+        if (piece > 0) {
             inCheck = isCheck(true);
         }
         else {
             inCheck = isCheck(false);
         }
-        board[startRow][startCol] = piece;
-        board[endRow][endCol] = temp;
+
+        board[index(startRow, startCol)] = piece;
+        board[index(endRow, endCol)] = temp;
+
         return inCheck;
     }
     public ChessBoard(ChessBoard other) {
-        board = new String[8][8];
+        board = new byte[64];
+
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                board[i][j] = other.board[i][j];
+                board[index(i, j)] = other.board[index(i, j)];
             }
         }
+
         wKingMoved = other.wKingMoved;
         bKingMoved = other.bKingMoved;
         wLeftRookMoved = other.wLeftRookMoved;
@@ -705,80 +771,80 @@ public class ChessBoard {
         enPassantCol = other.enPassantCol;
         halfCount = other.halfCount;
         fiftyMove = other.fiftyMove;
-        
         whiteTurn = other.whiteTurn;
         positionCount = new HashMap<>(other.positionCount);
+
     }
-    
     public boolean isCheckmate(boolean isWhite) {
         if(!isCheck(isWhite)) {
             return false;
         }
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                String piece = board[r][c];
-                if (piece.equals("*")) {
+                byte piece = board[index(r, c)];
+                if (piece== 0) {
                     continue;
                 }
                 
-                boolean isWhitePiece = piece.equals(piece.toUpperCase());
+                boolean isWhitePiece = piece > 0;
                 
                 if (isWhite != isWhitePiece) {
                     continue;
                 }
-                
+
                 for (int a = 0; a < 8; a++) {
                     for (int b = 0; b < 8; b++) {
                         ChessBoard testBoard = new ChessBoard(this);
                         boolean moved = false;
 
-                        if (piece.equals("P") || piece.equals("p")) {
+                        if (piece == 1 || piece == -1) {
                             moved = testBoard.pawnMove(r, c, a, b);
                         }
-                        
-                        else if (piece.equals("R") || piece.equals("r")) {
+
+                        else if (piece == 4 || piece == -4) {
                             moved = testBoard.rookMove(r, c, a, b);
                         }
-                        
-                        else if (piece.equals("B") || piece.equals("b")) {
+
+                        else if (piece == 3 || piece == -3) {
                             moved = testBoard.bishopMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("N") || piece.equals("n")) {
+                        else if (piece == 2 || piece == -2) {
                             moved = testBoard.knightMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("Q") || piece.equals("q")) {
+                        else if (piece == 5 || piece == -5) {
                             moved = testBoard.queenMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("K") || piece.equals("k")) {
+                        else if (piece == 6 || piece == -6) {
                             moved = testBoard.kingMove(r, c, a, b);
                         }
 
                         if (moved && !testBoard.isCheck(isWhite)) {
                             return false;
                         }
-
                     }
                 }
             }
         }
         return true;
     }
-
     public boolean isStalemate(boolean isWhite) {
         if(isCheck(isWhite)) {
             return false;
         }
+
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                String piece = board[r][c];
-                if (piece.equals("*")) {
+
+                byte piece = board[index(r, c)];
+
+                if (piece== 0) {
                     continue;
                 }
                 
-                boolean isWhitePiece = piece.equals(piece.toUpperCase());
+                boolean isWhitePiece = piece > 0;
                 
                 if (isWhite != isWhitePiece) {
                     continue;
@@ -786,30 +852,31 @@ public class ChessBoard {
                 
                 for (int a = 0; a < 8; a++) {
                     for (int b = 0; b < 8; b++) {
+
                         ChessBoard testBoard = new ChessBoard(this);
                         boolean moved = false;
 
-                        if (piece.equals("P") || piece.equals("p")) {
+                        if (piece == 1 || piece == -1) {
                             moved = testBoard.pawnMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("R") || piece.equals("r")) {
+                        else if (piece == 4 || piece == -4) {
                             moved = testBoard.rookMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("B") || piece.equals("b")) {
+                        else if (piece == 3 || piece == -3) {
                             moved = testBoard.bishopMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("N") || piece.equals("n")) {
+                        else if (piece == 2 || piece == -2) {
                             moved = testBoard.knightMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("Q") || piece.equals("q")) {
+                        else if (piece == 5 || piece == -5) {
                             moved = testBoard.queenMove(r, c, a, b);
                         }
                         
-                        else if (piece.equals("K") || piece.equals("k")) {
+                        else if (piece == 6 || piece == -6) {
                             moved = testBoard.kingMove(r, c, a, b);
                         }
 
@@ -823,10 +890,10 @@ public class ChessBoard {
         }
         return true;
     }
-    
     public boolean isCastle(int startRow, int startCol, int endRow, int endCol) {
-        String piece = board[startRow][startCol];
-        if (!piece.equals("K") && !piece.equals("k")) {
+        byte piece = board[index(startRow, startCol)];
+
+        if (piece != 6 && piece != -6) {
             return false; 
         }
         
@@ -837,29 +904,30 @@ public class ChessBoard {
         else {
             rookCol = 0;
         }
-        String rook = board[startRow][rookCol];
 
-        if (piece.equals("K") && !rook.equals("R")) {
+        byte rook = board[index(startRow, rookCol)];
+
+        if (piece == 6 && rook != 4) {
             return false;
         }
         
-        if (!rook.equals("k") && !rook.equals("r")) {
+        if (piece == -6 && rook != -4) {
             return false; 
         }
 
-        if ((piece.equals("K") && wKingMoved)) {
+        if ((piece == 6 && wKingMoved)) {
             return false; 
         }
 
-        if (piece.equals("k") && bKingMoved) {
+        if (piece == -6 && bKingMoved) {
             return false;
         }
 
-        if (isCheck(piece.equals("K"))) {
+        if (isCheck(piece == 6)) {
             return false;
         }
 
-        if (piece.equals("K")) {
+        if (piece == 6) {
             if (rookCol == 0 && wLeftRookMoved) {
                 return false;
             }
@@ -868,7 +936,7 @@ public class ChessBoard {
             }    
         }
 
-        if (piece.equals("k")) {
+        if (piece == -6) {
             if (rookCol == 0 && bLeftRookMoved) {
                 return false;
             }
@@ -876,32 +944,33 @@ public class ChessBoard {
                 return false;
             }
         }
+
         ChessBoard testBoard = new ChessBoard(this);
-        testBoard.board[endRow][endCol] = piece;
-        testBoard.board[startRow][startCol] = "*";
-        if (testBoard.isCheck(piece.equals("K"))) {
+        testBoard.board[index(endRow, endCol)] = piece;
+        testBoard.board[index(startRow, startCol)] = 0;
+
+        if (testBoard.isCheck(piece == 6)) {
             return false; 
         }
+
         int direction;
 
         if (endCol > startCol) {
             direction = 1;
         }
+
         else {
             direction = -1;
         }
 
         int middleCol = startCol + direction;
-        ChessBoard middleBoard = new ChessBoard(this);
-        middleBoard.board[startRow][startCol] = "*";
-        middleBoard.board[startRow][middleCol] = piece;
-
-        if (middleBoard.isCheck(piece.equals("K"))) {
+        
+        if (leaveInCheck(startRow, startCol, startRow, middleCol)) {
             return false;
         }
         
-        for (int c = startCol + direction; c != rookCol; c+= direction) {
-            if (!board[startRow][c].equals("*")) {
+        for (int c = startCol + direction; c != rookCol; c += direction) {
+            if (board[index(startRow, c)] != 0) {
                 return false;
             }
         }
@@ -915,26 +984,31 @@ public class ChessBoard {
             rookEndCol = endCol + 1;
         }
 
-        if (piece.equals("K")) {
-            testBoard.board[startRow][rookEndCol] = "R";
+        if (piece == 6) {
+            testBoard.board[index(startRow, rookEndCol)] = 4;
         }
-        else {
-        testBoard.board[startRow][rookEndCol] = "r";
+        else { 
+        testBoard.board[index(startRow, rookEndCol)] = -4;
         }
-        testBoard.board[startRow][startCol] = "*";
+
+        testBoard.board[index(startRow, startCol)] = 0;
+        testBoard.board[index(startRow, rookCol)] = 0;
         
-        if (testBoard.isCheck(piece.equals("K"))) {
+        if (testBoard.isCheck(piece == 6)) {
             return false;
         }
         return true;
     }
-    public boolean pawnPromote(int row, int col, String piecePromote) {
-        String piece = board[row][col];
-        if (piece.equals("*")) {
+    public boolean pawnPromote(int row, int col, byte piecePromote) {
+        byte piece = board[index(row, col)];
+
+        if (piece== 0) {
             return false;
         }
-        boolean isWhite = piece.equals("P");
-        boolean isBlack = piece.equals("p");
+
+        boolean isWhite = piece == 1;
+        boolean isBlack = piece == -1;
+
         if (!isWhite && !isBlack) {
             return false;
         }        
@@ -945,44 +1019,64 @@ public class ChessBoard {
             return false;
         }
         if (isWhite) {
-            if (!piecePromote.equals("R") && !piecePromote.equals("B") && !piecePromote.equals("N") && !piecePromote.equals("Q")) {
+            if (piecePromote != 4 && piecePromote != 3 && piecePromote != 2 && piecePromote != 5) {
                 return false;
             }
         }
         if (!isWhite) {
-            if (!piecePromote.equals("R") && !piecePromote.equals("B") && !piecePromote.equals("N") && !piecePromote.equals("Q")) {
+            if (piecePromote != 4 && piecePromote != 3 && piecePromote != 2 && piecePromote != 5) {
                 return false;
             }
-            piecePromote = piecePromote.toLowerCase();
+            if (piece < 0) {
+                piecePromote = (byte) - Math.abs(piecePromote);
+            }
+            else {
+                piecePromote = (byte)Math.abs(piecePromote);
+            }
         }
-        board[row][col] = piecePromote;
+
+        board[index(row, col)] = piecePromote;
         return true;
     }
     public boolean makeMove(Move move) {
-        String piece = board[move.getStartRow()][move.getStartCol()];
-        boolean capture = !board[move.getEndRow()][move.getEndCol()].equals("*") || ((piece.equals("P") || piece.equals("p")) && enPassant && move.getEndRow() == enPassantRow && move.getEndCol() == enPassantCol);
-        boolean pawnMove = piece.equals("P") || piece.equals("p");
+        byte piece = board[index(move.getStartRow(), move.getStartCol())];
+        
+        if (piece == 0) {
+            return false;
+        }
+
+        if (whiteTurn && piece < 0) {
+            return false;
+        }
+
+        if (!whiteTurn && piece > 0) {
+            return false;
+        }
+
+        boolean capture = board[index(move.getEndRow(), move.getEndCol())] != 0 || ((piece == 1 || piece == -1) && enPassant && move.getEndRow() == enPassantRow && move.getEndCol() == enPassantCol);
+        boolean pawnMove = piece == 1 || piece == -1;
         boolean moved = false;
-        if (piece.equals("P") || piece.equals("p")) {
+
+        if (piece == 1 || piece == -1) {
             moved = pawnMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
         
-        else if (piece.equals("R") || piece.equals("r")) {
+        else if (piece == 4 || piece == -4) {
             moved = rookMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
         
-        else if (piece.equals("B") || piece.equals("b")) {
+        else if (piece == 3 || piece == -3) {
             moved = bishopMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
 
-        else if (piece.equals("N") || piece.equals("n")) {
+        else if (piece == 2 || piece == -2) {
             moved = knightMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
 
-        else if (piece.equals("Q") || piece.equals("q")) {
+        else if (piece == 5 || piece == -5) {
             moved = queenMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
-        else if (piece.equals("K") || piece.equals("k")) {
+        else if (piece == 6 || piece == -6) {
             moved = kingMove(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol());
         }
 
@@ -998,7 +1092,10 @@ public class ChessBoard {
             }
 
             flipTurn();
-            threefoldRepetition();
+
+            if (positionCount != null) {
+                threefoldRepetition();    
+            }
         }
         return moved;
     }
@@ -1007,10 +1104,10 @@ public class ChessBoard {
         ArrayList<Move> legalMoves = new ArrayList<>();
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                String piece = board[r][c];
+                byte piece = board[index(r, c)];
 
-                if (!piece.equals("*")) {
-                    boolean isWhitePiece = piece.equals(piece.toUpperCase());
+                if (piece != 0) {
+                    boolean isWhitePiece = piece > 0;
 
                     if (isWhitePiece == isWhite) {
                         for (int a = 0; a < 8; a++) {
@@ -1035,54 +1132,64 @@ public class ChessBoard {
         if (isCheckmate(true)) {
             return -100000;    
         }
+
         if (isCheckmate(false)) {
             return 100000;
         }
+
         int score = 0;
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                String piece = board[r][c];
-                if (piece.equals("P")) {
+                byte piece = board[index(r, c)];
+                if (piece == 1) {
                     score += 100;
                 }
-                else if (piece.equals("N")) {
+
+                else if (piece == 2) {
                     score += 300;
                 }
-                else if (piece.equals("B")) {
+
+                else if (piece == 3) {
                     score += 300;
                 }
-                else if (piece.equals("R")) {
+
+                else if (piece == 4) {
                     score += 500;
                 }
-                else if (piece.equals("Q")) {
+
+                else if (piece == 5) {
                     score += 900;
                 }
-                else if (piece.equals("p")) {
+
+                else if (piece == -1) {
                     score -= 100;
                 }
-                else if (piece.equals("n")) {
+
+                else if (piece == -2) {
                     score -= 300;
                 }
-                else if (piece.equals("b")) {
+
+                else if (piece == -3) {
                     score -= 300; 
                 }
-                else if (piece.equals("r")) {
+
+                else if (piece == -4) {
                     score -= 500;
                 }
-                else if (piece.equals("q")) {
+
+                else if (piece == -5) {
                     score -= 900;
                 }
             }
         }
         return score;
     }
-
     public String getPosition() {
         String pos = "";
         
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                pos += board[r][c];
+                pos += board[index(r, c)];
             }
         }
 
@@ -1107,10 +1214,12 @@ public class ChessBoard {
     public boolean threefoldRepetition() {
         String pos = getPosition();
         Integer count = positionCount.get(pos);
+
         if (count == null) {
             positionCount.put(pos, 1);
             return false;
         }
+
         else {
             count++;
             positionCount.put(pos, count);
@@ -1137,6 +1246,65 @@ public class ChessBoard {
     public boolean fiftyMove() {
         return fiftyMove;
     }
-}
 
+    public boolean insufficientMaterial() {
+        int wBishops = 0;
+        int bBishops = 0;
+        int wKnights = 0;
+        int bKnights = 0;
+
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                byte piece = board[index(r, c)];
+
+                if (piece != 0) {
+                    if (piece == 1 || piece == 4 || piece == 5 || piece == -1 || piece == -5 || piece == -4) {
+                        return false;
+                    }
+            
+                    if (piece == 3) {
+                        wBishops++;
+                    }
+                    
+                    else if (piece == -3) {
+                        bBishops++;
+                    }
+                    
+                    else if (piece == 2) {
+                        wKnights++;
+                    }
+                    
+                    else if (piece == -2) {
+                        bKnights++;
+                    }
+                }
+            }
+        }
+
+        int total = wBishops + bBishops + wKnights + bKnights;
         
+        if (total == 0) {
+            return true;
+        }
+
+        if (total == 1) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isDraw() {
+        if (isCheckmate(whiteTurn)) {
+            return false;
+        }
+        return repeatDraw || fiftyMove || insufficientMaterial() || isStalemate(whiteTurn); 
+    }
+
+    private byte convertPiece(byte piece) {
+        return piece;
+    }
+
+    private int index(int row, int col) {
+        return row * 8 + col;
+    }
+}
