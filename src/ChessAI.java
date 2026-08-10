@@ -1,11 +1,15 @@
 import java.util.ArrayList;
 public class ChessAI {
+    private int nodes;
     public Move getBestMove(ChessBoard board, boolean isWhite, int depth) {
+        nodes = 0;
         int alpha = Integer.MIN_VALUE;
         int beta = Integer.MAX_VALUE;
         Move bestMove = null;
         
         ArrayList<Move> moves = board.generateMoves(isWhite);
+        MoveOrder.sortMoves(board, moves);
+        
         for (Move move : moves) {
             ChessBoard copy = new ChessBoard(board);
             copy.makeMove(move);
@@ -30,10 +34,13 @@ public class ChessAI {
         return bestMove;
     }
     private int minimax(ChessBoard board, int depth, int alpha, int beta, boolean maximizingPlayer) {
+        nodes++;
         if (depth <= 0 || terminalNode(board)) {
             return board.evaluateBoard();
         }
         ArrayList<Move> moves = board.generateMoves(maximizingPlayer);
+        MoveOrder.sortMoves(board, moves);
+
         if (maximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
             for (Move move: moves) {
@@ -65,6 +72,9 @@ public class ChessAI {
         }
     }
     private boolean terminalNode(ChessBoard board) {
-        return board.isCheckmate(true) || board.isCheckmate(false) || board.isStalemate(true) || board.isStalemate(false);
+        return board.isCheckmate(true) || board.isCheckmate(false) || board.isDraw();
+    }
+    public int getNodes() {
+        return nodes;
     }
 }
