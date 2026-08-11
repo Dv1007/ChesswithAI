@@ -15,13 +15,18 @@ public class ByteSend {
             byte[] board = chessBoard.getBoardState();
 
             OutputStream output = socket.getOutputStream();
-            output.write(board);
-            System.out.println("Sent: " + board.length);
-
             InputStream input = socket.getInputStream();
-            byte[] received =  new byte[2];
-            input.read(received);
-            System.out.println(new String(received));
+
+            for (int i = 0; i < 100; i++) {
+                System.out.println("Board length: " + board.length);
+                output.write(board);
+                System.out.println("Sent: " + board.length);
+
+                byte[] received =  new byte[2];
+                input.read(received);
+                System.out.println(new String(received));    
+            }
+            
             socket.close();
 
         } catch (Exception e) {
