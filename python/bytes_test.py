@@ -12,9 +12,24 @@ print("Waiting for Java")
 connection, address = server.accept()
 print("Java connected")
 
-data = connection.recv(64)
-print("Received:", data)
-print("Number of bytes:", len(data))
+expect = bytes([
+    4, 2, 3, 5, 6, 3, 2, 4,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    255, 255, 255, 255, 255, 255, 255, 255,
+    252, 254, 253, 251, 250, 253, 254, 252
+])
+
+for i in range(100):
+
+    data = connection.recv(64)
+
+    print("Transfer: ", i + 1, "Check Board:", data == expect)
+
+    connection.sendall(b"OK")
 
 connection.close()
 server.close()
