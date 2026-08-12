@@ -17,15 +17,24 @@ public class ByteSend {
             OutputStream output = socket.getOutputStream();
             InputStream input = socket.getInputStream();
 
+            long startTime = System.nanoTime();
             for (int i = 0; i < 100; i++) {
                 System.out.println("Board length: " + board.length);
                 output.write(board);
+                output.flush();
                 System.out.println("Sent: " + board.length);
 
                 byte[] received =  new byte[2];
                 input.read(received);
                 System.out.println(new String(received));    
             }
+            long endTime = System.nanoTime();
+
+            double milliseconds = (double) (endTime - startTime) / 1000000;
+            double avg = milliseconds / 100;
+            
+            System.out.println("Total Time: " + milliseconds + " ms");
+            System.out.println("Average Time: " + avg + " ms");
             
             socket.close();
 
