@@ -18,7 +18,7 @@ public class ByteSend {
             InputStream input = socket.getInputStream();
 
             long startTime = System.nanoTime();
-            int transfers = 100;
+            int transfers = Integer.parseInt(args[0]);
             for (int i = 0; i < transfers; i++) {
                 System.out.println("Board length: " + board.length);
                 output.write(board);
