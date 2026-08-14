@@ -35,7 +35,7 @@ expect = bytes([
     255, 255, 255, 255, 255, 255, 255, 255,
     252, 254, 253, 251, 250, 253, 254, 252
 ])
-transfers = 100
+transfers = 1000000
 board_size = 64
 
 for i in range(transfers):
