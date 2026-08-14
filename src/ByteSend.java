@@ -8,7 +8,7 @@ public class ByteSend {
         int port = 5000;
         
         try {
-            Socket socket = new Socket("localhost", 5000);
+            Socket socket = new Socket(host, port);
             System.out.println("Connected to Python");   
             
             ChessBoard chessBoard = new ChessBoard();
@@ -18,23 +18,37 @@ public class ByteSend {
             InputStream input = socket.getInputStream();
 
             long startTime = System.nanoTime();
-            for (int i = 0; i < 100; i++) {
+            int transfers = 100;
+            for (int i = 0; i < transfers; i++) {
                 System.out.println("Board length: " + board.length);
                 output.write(board);
                 output.flush();
                 System.out.println("Sent: " + board.length);
 
                 byte[] received =  new byte[2];
-                input.read(received);
-                System.out.println(new String(received));    
+                for (int j = 0; j < received.length; j++) {
+                    int val = input.read();
+                    if (val == -1) {
+                        throw new Exception("Connection has closed before receiving OK");
+                    }
+                    received[j] = (byte) val;
+                }
+                String response = new String(received);
+
+                if (!response.equals("OK")) {
+                    throw new Exception("Invalid response: " + response);
+                }
             }
             long endTime = System.nanoTime();
 
             double milliseconds = (double) (endTime - startTime) / 1000000;
-            double avg = milliseconds / 100;
+            double avg = milliseconds / transfers;
+            double seconds = milliseconds / 1000;
+            double throughput = transfers / seconds;
             
             System.out.println("Total Time: " + milliseconds + " ms");
             System.out.println("Average Time: " + avg + " ms");
+            System.out.println("Throughput: " + throughput + " transfers/sec");
             
             socket.close();
 
