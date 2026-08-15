@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 
 expect = bytes([
     4, 2, 3, 5, 6, 3, 2, 4,
@@ -12,19 +13,22 @@ expect = bytes([
     252, 254, 253, 251, 250, 253, 254, 252
 ])
 
-for i in range(100):
+transfers = int(sys.argv[1])
+success = 0
+
+for i in range(transfers):
 
     while not os.path.exists("java_ready.flag"):
-        time.sleep(0.01)
+        time.sleep(0.001)
 
     with open("shared_memory.bin", "rb") as file:
         data = file.read(64)
 
-    print("Number of Transfers:", i + 1, "Board length:", len(data), "Check Board:", data == expect)
+    if len(data) == 64 and data == expect:
+        success += 1
 
     open("python_ready.flag", "w").close()
-
-    while os.path.exists("python_ready.flag"):
-        time.sleep(0.01)
-
-print("Successfully completed 100 transfers")
+    
+print("Total Transfers:", transfers)
+print("Successful Transfers:", success)
+print("Boards Verified:", success == transfers)
