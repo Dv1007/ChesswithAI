@@ -1,4 +1,3 @@
-import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -9,44 +8,41 @@ public class SharedMemory {
 
         ChessBoard chessBoard = new ChessBoard();
         byte[] board = chessBoard.getBoardState();
-
-        File javaReady = new File("../java_ready.flag");
-        File pythonReady = new File("../python_ready.flag");
-
-        javaReady.delete();
-        pythonReady.delete();
         
         RandomAccessFile file = new RandomAccessFile("../shared_memory.bin", "rw");
         FileChannel channel = file.getChannel();
 
-        MappedByteBuffer memory = channel.map(FileChannel.MapMode.READ_WRITE, 0, 64);
+        MappedByteBuffer memory = channel.map(FileChannel.MapMode.READ_WRITE, 0, 65);
+
+        memory.put(0, (byte) 0);
 
         long startTime = System.nanoTime();
         
         for (int i = 0; i < transfers; i++) {
-            memory.position(0);
+            memory.position(1);
             memory.put(board);
 
-            javaReady.delete();
-            javaReady.createNewFile();
+            memory.put(0, (byte) 1);
 
-            while (!pythonReady.exists()) {
-                Thread.sleep(1);
+            while (memory.get(0) != 2) {
+                Thread.sleep(0, 100000);
             }
-            pythonReady.delete();
-            javaReady.delete();
+            memory.put(0, (byte) 0);
         }
-        System.out.println("Loop finished");
         
         long endTime = System.nanoTime();
 
         double milliseconds = (double) (endTime - startTime) / 1000000;
         double avg = milliseconds / transfers;
+        double seconds = milliseconds / 1000;
+        double throughput = transfers / seconds;
 
-        System.out.println("Successfully completed " + transfers + " transfers");
-        System.out.println("Board size: " + board.length + " bytes");
+        System.out.println("Architecture: Shared memory");
+        System.out.println("Transfers: " + transfers);
+        System.out.println("Board size: " + board.length);
         System.out.println("Total Time: " + milliseconds + " ms");
-        System.out.println("Average Time: " + avg + " ms");
+        System.out.println("Average Latency: " + avg + " ms");
+        System.out.println("Throughput: " + throughput + " transfers/sec");
 
         channel.close();
         file.close();
