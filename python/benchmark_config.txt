@@ -1,0 +1,3 @@
+transfers=100,1000,10000,100000,1000000
+trials=5
+board_size=64
