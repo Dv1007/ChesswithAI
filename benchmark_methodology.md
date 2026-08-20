@@ -69,14 +69,14 @@ Throughput is calculated as:
 
     throughput = number of transfers / elapsed time in seconds
 
-This represents the number of completed communication cycles per second
+This represents the number of completed communication cycles per second.
 
 ## Verification:
 
 The Python receiver verifies every received 64 byte board state against the
 expected chess board state.
 
-The Java sender verifies the `OK` acknowledgment sent from the Python receiver.
+The Java sender waits for the acknowledgment before beginning the next transfer.
 
 A trial is only considered valid if the number of successfully verified
 boards equals the requested transfer count.
@@ -105,7 +105,9 @@ The Python receiver reads and verifies the board state and sets the synchronizat
 ## Synchronization:
 
 Both architectures use a request/response synchronization system
-between the Java sender and Python receiver.
+between the Java sender and Python receiver. 
+
+The shared-memory architecture uses active polling during synchronization.
 
 ### TCP-based IPC
 
@@ -129,17 +131,17 @@ The synchronization flag uses:
 For each transfer:
 
 1. Java writes the board state.
-2. Java sets the synchronization flag to `1`
-3. Python waits until the synchronization flag signals that the board is available.
+2. Java sets the synchronization flag to `1`.
+3. Python continuously polls the synchronization flag until it equals `1`.
 4. Python reads and verifies the board state.
 5. Python sets the synchronization flag to `2`.
-6. Java waits until the synchronization flag equals `2`.
+6. Java continuously polls the synchronization flag until it equals `2`.
 7. Java resets the synchronization flag to `0`.
 8. The next transfer begins.
 
 ## Timing:
 
-Java measures each benchmark using `System.nanoTime()` from the start to the end of the transfer.
+Java measures each benchmark using `System.nanoTime()` from the start to the end of the transfer workload.
 
 The benchmark timer includes the communication and synchronization process for each requested workload.
 
