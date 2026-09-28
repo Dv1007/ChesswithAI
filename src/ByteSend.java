@@ -7,53 +7,52 @@ public class ByteSend {
         String host = "localhost";
         int port = 5000;
         
-        try {
-            Socket socket = new Socket(host, port);
-            System.out.println("Connected to Python");   
-            
-            ChessBoard chessBoard = new ChessBoard();
-            byte[] board = chessBoard.getBoardState();
+        Socket socket = new Socket(host, port);
 
-            OutputStream output = socket.getOutputStream();
-            InputStream input = socket.getInputStream();
+        socket.setTcpNoDelay(true);
+        
+        ChessBoard chessBoard = new ChessBoard();
+        byte[] board = chessBoard.getBoardState();
 
-            long startTime = System.nanoTime();
-            int transfers = Integer.parseInt(args[0]);
-            for (int i = 0; i < transfers; i++) {
-                System.out.println("Board length: " + board.length);
-                output.write(board);
-                output.flush();
-                System.out.println("Sent: " + board.length);
+        OutputStream output = socket.getOutputStream();
+        InputStream input = socket.getInputStream();
 
-                byte[] received =  new byte[2];
-                for (int j = 0; j < received.length; j++) {
-                    int val = input.read();
-                    if (val == -1) {
-                        throw new Exception("Connection has closed before receiving OK");
-                    }
-                    received[j] = (byte) val;
+        long startTime = System.nanoTime();
+        int transfers = Integer.parseInt(args[0]);
+        for (int i = 0; i < transfers; i++) {
+            output.write(board);
+            output.flush();
+
+            byte[] received =  new byte[2];
+            for (int j = 0; j < received.length; j++) {
+                int val = input.read();
+                if (val == -1) {
+                    throw new Exception("Connection has closed before receiving OK");
                 }
-                String response = new String(received);
-
-                if (!response.equals("OK")) {
-                    throw new Exception("Invalid response: " + response);
-                }
+                received[j] = (byte) val;
             }
-            long endTime = System.nanoTime();
+            String response = new String(received);
 
-            double milliseconds = (double) (endTime - startTime) / 1000000;
-            double avg = milliseconds / transfers;
-            double seconds = milliseconds / 1000;
-            double throughput = transfers / seconds;
-            
-            System.out.println("Total Time: " + milliseconds + " ms");
-            System.out.println("Average Time: " + avg + " ms");
-            System.out.println("Throughput: " + throughput + " transfers/sec");
-            
-            socket.close();
-
-        } catch (Exception e) {
-        System.out.println("Could not connect to Python: " + e.getMessage());
+            if (!response.equals("OK")) {
+                throw new Exception("Invalid response: " + response);
+            }
         }
+        long endTime = System.nanoTime();
+
+        double milliseconds = (double) (endTime - startTime) / 1000000;
+        double avg = milliseconds / transfers;
+        double seconds = milliseconds / 1000;
+        double throughput = transfers / seconds;
+        
+        System.out.println("{");
+        System.out.println("  \"architecture\": \"TCP-IPC\",");
+        System.out.println("  \"transfers\": " + transfers + ",");
+        System.out.println("  \"board_size\": " + board.length + ",");
+        System.out.println("  \"total_time_ms\": " + milliseconds + ",");
+        System.out.println("  \"average_latency_ms\": " + avg + ",");
+        System.out.println("  \"throughput\": " + throughput);
+        System.out.println("}");
+
+        socket.close();
     }
 }
