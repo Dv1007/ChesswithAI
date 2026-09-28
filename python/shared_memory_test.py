@@ -1,7 +1,6 @@
-import os
-import time
 import sys
 import mmap
+import os
 
 expect = bytes([
     4, 2, 3, 5, 6, 3, 2, 4,
@@ -17,17 +16,20 @@ expect = bytes([
 transfers = int(sys.argv[1])
 success = 0
 
-with open("shared_memory.bin", "r+b") as file:
+project_root = os.path.dirname(os.path.abspath(__file__))
+shared_memory_path = os.path.join(project_root, "shared_memory.bin")
+
+with open(shared_memory_path, "r+b") as file:
     memory = mmap.mmap(file.fileno(), 65)
+
+    board_view = memoryview(memory)[1:65]
 
     for i in range(transfers):
 
-        while memory[0] != 1:
-            time.sleep(0.0001)
+        while memory[0:1] != b'\x01':
+            pass
 
-        data = memory[1:65]
-
-        if len(data) == 64 and data == expect:
+        if board_view == expect:
             success += 1
 
         memory[0] = 2
